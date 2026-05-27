@@ -11,7 +11,6 @@ on:
       - 'guard_agent/**'
       - '.pre-commit-config.yaml'
       - 'pyproject.toml'
-      - 'setup.py'
       - 'tests/**'
   pull_request_target:
     branches:
@@ -23,7 +22,6 @@ on:
       - 'guard_agent/**'
       - '.pre-commit-config.yaml'
       - 'pyproject.toml'
-      - 'setup.py'
       - 'tests/**'
 
 jobs:
