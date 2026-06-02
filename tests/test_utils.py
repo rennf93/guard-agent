@@ -11,6 +11,7 @@ from guard_agent.utils import (
     CircuitBreaker,
     RateLimitedError,
     RateLimiter,
+    SerializationError,
     calculate_backoff_delay,
     generate_batch_id,
     get_current_timestamp,
@@ -104,9 +105,8 @@ class TestUtils:
                 raise TypeError("Cannot serialize this object")
 
         data = {"obj": Unserializable()}
-        serialized = await safe_json_serialize(data)
-        assert "serialization_failed" in serialized
-        assert "error" in json.loads(serialized)
+        with pytest.raises(SerializationError):
+            await safe_json_serialize(data)
 
     @pytest.mark.asyncio
     async def test_safe_json_deserialize_success(self) -> None:
