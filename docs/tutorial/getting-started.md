@@ -15,7 +15,7 @@ The Guard Agent operates as an intelligent telemetry layer within your security 
 
 ### System Requirements
 
-- **Python Runtime**: Version 3.8 or higher (3.11+ recommended for optimal performance)
+- **Python Runtime**: Version 3.10 or higher (3.11+ recommended for optimal performance)
 - **Package Installation**: Guard Agent via pip ([Installation Guide](../installation.md))
 - **Application Framework**: Existing or new FastAPI application
 - **Authentication**: Valid API credentials from the FastAPI Guard management platform
@@ -96,8 +96,6 @@ config = SecurityConfig(
     agent_enable_metrics=True,            # Collect performance metrics
     agent_retry_attempts=3,               # HTTP retry attempts
     agent_timeout=30,                     # HTTP request timeout
-    agent_compression_enabled=True,       # Gzip request bodies above threshold
-    agent_compression_threshold=1024,     # Bytes; bodies smaller than this skip gzip
 
     # Dynamic rules settings
     enable_dynamic_rules=True,            # Enable dynamic rule fetching
@@ -140,7 +138,7 @@ graph TD
 
 ### Step 3.1: Outgoing Body Compression
 
-The agent gzip-compresses outgoing telemetry batches whose JSON body exceeds `agent_compression_threshold` bytes (default 1024). When compression applies the request is sent with `Content-Encoding: gzip` and `EventBatch.compressed=True`. Smaller batches are sent as plain JSON to avoid the encode/decode cost.
+The agent gzip-compresses outgoing telemetry batches whose JSON body exceeds the agent's `compression_threshold` bytes (default 1024). When compression applies the request is sent with the `Content-Encoding: gzip` header. Smaller batches are sent as plain JSON to avoid the encode/decode cost.
 
 Why it matters:
 
@@ -153,16 +151,20 @@ Compatibility:
 | Endpoint | Default `compression_enabled=True` |
 |---|---|
 | **Guard Core SaaS (`https://api.guard-core.com`)** | Works as-is. The SaaS decompresses gzip request bodies via its `GzipRequestMiddleware` before pydantic validation. No customer action required. |
-| **Custom ingestion endpoint without gzip request decoding** | Set `agent_compression_enabled=False`. Most plain FastAPI / Flask / Django apps do not auto-decompress gzip *request* bodies; compressed batches will fail body parsing on those backends. |
+| **Custom ingestion endpoint without gzip request decoding** | Build the agent with `AgentConfig(..., compression_enabled=False)`. Most plain FastAPI / Flask / Django apps do not auto-decompress gzip *request* bodies; compressed batches will fail body parsing on those backends. |
 
-Tuning:
+Tuning is done on `AgentConfig` directly (the agent transport owns compression; `SecurityConfig` does not forward these knobs):
 
 ```python
-config = SecurityConfig(
-    # ... other settings ...
-    agent_compression_enabled=True,    # Default; gzip large batches
-    agent_compression_threshold=1024,  # Skip gzip for bodies smaller than 1 KiB
+from guard_agent import guard_agent, AgentConfig
+
+config = AgentConfig(
+    api_key="your-api-key",
+    project_id="your-project-id",
+    compression_enabled=True,    # Default; gzip large batches
+    compression_threshold=1024,  # Skip gzip for bodies smaller than 1 KiB
 )
+agent = guard_agent(config)
 ```
 
 Lower the threshold (e.g. 256) for chatty deployments where most batches are tiny but still worth compressing. Raise it (e.g. 4096) for batches that are mostly small-and-frequent and you would rather save the gzip CPU.
@@ -175,8 +177,7 @@ FastAPI Guard's decorator system provides granular security controls with automa
 
 ```python
 from fastapi import FastAPI
-from guard import SecurityConfig, SecurityMiddleware
-from guard.decorators import SecurityDecorator
+from guard import SecurityConfig, SecurityMiddleware, SecurityDecorator
 
 app = FastAPI(title="My Secure API with Enhanced Security")
 
