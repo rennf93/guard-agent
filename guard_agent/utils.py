@@ -77,13 +77,17 @@ def calculate_backoff_delay(
     return min(delay, max_delay)
 
 
+class SerializationError(Exception):
+    """Raised when an object cannot be serialized to JSON for transport."""
+
+
 async def safe_json_serialize(obj: Any) -> str:
-    """Safely serialize object to JSON with error handling."""
+    """Serialize object to JSON; raise SerializationError on failure."""
     try:
         return json.dumps(obj, default=str, separators=(",", ":"))
     except (TypeError, ValueError) as e:
         logging.warning(f"Failed to serialize object: {str(e)}")
-        return json.dumps({"error": "serialization_failed", "type": str(type(obj))})
+        raise SerializationError(str(e)) from e
 
 
 async def safe_json_deserialize(json_str: str) -> dict[str, Any] | None:

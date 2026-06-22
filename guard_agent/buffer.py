@@ -49,6 +49,7 @@ class EventBuffer(BufferProtocol):
         self.metrics_flushed = 0
         self.events_dropped = 0
         self.metrics_dropped = 0
+        self.redis_persist_failures = 0
         self.last_flush_time: float | None = None
 
     async def initialize_redis(self, redis_handler: RedisHandlerProtocol) -> None:
@@ -377,6 +378,7 @@ class EventBuffer(BufferProtocol):
             )
             return key
         except Exception as e:
+            self.redis_persist_failures += 1
             self.logger.warning(f"Failed to persist event to Redis: {str(e)}")
             return None
 
@@ -400,6 +402,7 @@ class EventBuffer(BufferProtocol):
             )
             return key
         except Exception as e:
+            self.redis_persist_failures += 1
             self.logger.warning(f"Failed to persist metric to Redis: {str(e)}")
             return None
 
@@ -544,6 +547,10 @@ class EventBuffer(BufferProtocol):
             "metrics_dropped": self.metrics_dropped,
             "current_event_buffer_size": len(self.event_buffer),
             "current_metric_buffer_size": len(self.metric_buffer),
+            "redis_persist_failures": self.redis_persist_failures,
+            "durability_degraded": (
+                self.redis_handler is not None and self.redis_persist_failures > 0
+            ),
             "last_flush_time": self.last_flush_time,
             "auto_flush_running": self._running,
         }

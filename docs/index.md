@@ -1,6 +1,6 @@
 ---
 title: Guard Agent - Framework-Agnostic Security Telemetry for Python Web Apps
-description: Enterprise-grade telemetry and monitoring agent for the Guard security ecosystem. Integrates with fastapi-guard, flaskapi-guard, djangoapi-guard, and tornadoapi-guard to provide real-time security event collection, performance monitoring, and dynamic policy management through a centralized platform.
+description: Enterprise-grade telemetry and monitoring agent for the Guard security ecosystem. Integrates with fastapi-guard, flaskapi-guard, djapi-guard, and tornadoapi-guard to provide real-time security event collection, performance monitoring, and dynamic policy management through a centralized platform.
 keywords: fastapi, flask, django, tornado, security, middleware, telemetry, monitoring, enterprise, cloud, saas, compliance, threat intelligence
 ---
 
@@ -13,7 +13,7 @@ keywords: fastapi, flask, django, tornado, security, middleware, telemetry, moni
 </p>
 
 <p align="center">
-    <strong>Guard Agent is a framework-agnostic telemetry and monitoring solution for the Guard security ecosystem. Paired with an adapter (<code>fastapi-guard</code>, <code>flaskapi-guard</code>, <code>djangoapi-guard</code>, or <code>tornadoapi-guard</code>), it collects security events, performance metrics, and operational telemetry in real time — feeding centralized security operations, compliance reporting, and dynamic threat response through an enterprise-grade management platform.</strong>
+    <strong>Guard Agent is a framework-agnostic telemetry and monitoring solution for the Guard security ecosystem. Paired with an adapter (<code>fastapi-guard</code>, <code>flaskapi-guard</code>, <code>djapi-guard</code>, or <code>tornadoapi-guard</code>), it collects security events, performance metrics, and operational telemetry in real time — feeding centralized security operations, compliance reporting, and dynamic threat response through an enterprise-grade management platform.</strong>
 </p>
 
 !!! info "Renamed from `fastapi-guard-agent` in 2.0.0"
@@ -124,7 +124,7 @@ ___
 
 ### Enterprise Architecture
 -   **Zero-Impact Performance**: Leverages asynchronous I/O and intelligent buffering to ensure telemetry collection adds negligible overhead to application performance
--   **Fault-Tolerant Design**: Implements circuit breakers, exponential backoff with jitter, and intelligent retry mechanisms to maintain operation during network disruptions
+-   **Fault-Tolerant Design**: Implements circuit breakers, exponential backoff, and intelligent retry mechanisms to maintain operation during network disruptions
 -   **Multi-Tier Buffering**: Combines in-memory and persistent Redis buffering to guarantee zero data loss during outages or maintenance windows
 
 ### Operational Excellence
@@ -159,7 +159,7 @@ The legacy `fastapi-guard-agent` name is still published as a meta-package that 
 
 ### System Requirements
 - Python 3.10 or higher (3.11+ recommended for optimal performance)
-- A Guard adapter matching your web framework: `fastapi-guard`, `flaskapi-guard`, `djangoapi-guard`, or `tornadoapi-guard`
+- A Guard adapter matching your web framework: `fastapi-guard`, `flaskapi-guard`, `djapi-guard`, or `tornadoapi-guard`
 - Optional Redis 6.0+ for persistent buffering
 
 ___
@@ -237,12 +237,11 @@ ___
 For production deployments, enable Redis for persistent buffering:
 
 ```python
-from redis.asyncio import Redis
-from guard_agent.redis_handler import RedisHandler
+from guard_agent.protocols import RedisHandlerProtocol
 
-# Configure Redis
-redis_client = Redis.from_url("redis://localhost:6379")
-redis_handler = RedisHandler(redis_client)
+# Supply any object implementing RedisHandlerProtocol
+# (the fastapi-guard Redis handler satisfies this protocol)
+redis_handler: RedisHandlerProtocol = your_redis_handler
 
 # Initialize agent with Redis
 agent = guard_agent(config)
@@ -367,7 +366,7 @@ Monitor agent health and performance:
 ```python
 status = await agent.get_status()
 
-print(f"Status: {status.status}")  # healthy, degraded, error
+print(f"Status: {status.status}")  # type allows healthy/degraded/failed; get_status() emits only healthy or degraded today
 print(f"Uptime: {status.uptime}s")
 print(f"Events sent: {status.events_sent}")
 print(f"Buffer size: {status.buffer_size}")
@@ -419,13 +418,10 @@ ___
 
 ## Documentation
 
-- [Introduction](agent_introduction.md)
-- [Configuration](agent_configuration.md)
-- [Architecture](agent_architecture.md)
-- [Data Models](agent_data_models.md)
-- [Dynamic Rules](agent_dynamic_rules.md)
 - [Installation](installation.md)
-- [First Steps](tutorial/first-steps.md)
-- [API Reference](api_reference.md)
+- [Getting Started](tutorial/getting-started.md)
+- [FastAPI Adapter](adapters/fastapi.md)
+- [API Overview](api/overview.md)
+- [Release Notes](release-notes.md)
 
-[📖 **Learn More in the Documentation**](agent_introduction.md)
+[📖 **Learn More in the Documentation**](tutorial/getting-started.md)

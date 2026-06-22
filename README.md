@@ -168,16 +168,13 @@ Guard Agent is embedded by your framework's adapter — you enable it through th
 
 ### FastAPI example
 
-FastAPI needs a `lifespan` context manager to start and stop the agent on the event loop:
+With fastapi-guard, the `SecurityMiddleware` owns the agent lifecycle: enable it through `SecurityConfig` and the middleware starts and stops the flush loop on the app's event loop for you. Do **not** construct an `AgentConfig`, call `guard_agent()`, or wire a `lifespan` hook here --- that creates a second agent that never receives traffic.
 
 ```python
 import os
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from guard import SecurityConfig, SecurityDecorator, SecurityMiddleware
-from guard_agent import AgentConfig, guard_agent
 
 api_key = os.environ.get("GUARD_API_KEY", "")
 project_id = os.environ.get("GUARD_PROJECT_ID", "")
@@ -196,28 +193,9 @@ security_config = SecurityConfig(
     dynamic_rule_interval=60,
 )
 
-agent_config = AgentConfig(
-    api_key=api_key,
-    endpoint=core_url,
-    project_id=project_id,
-    buffer_size=5000,
-    flush_interval=2,
-)
-
-agent = guard_agent(agent_config) if api_key else None
 guard = SecurityDecorator(security_config)
 
-
-@asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    if agent:
-        await agent.start()
-    yield
-    if agent:
-        await agent.stop()
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 app.add_middleware(SecurityMiddleware, config=security_config)
 SecurityMiddleware.configure_cors(app, security_config)
 app.state.guard_decorator = guard
