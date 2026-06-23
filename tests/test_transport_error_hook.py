@@ -47,9 +47,7 @@ def test_fire_error_hook_none_is_noop() -> None:
 
 def test_fire_error_hook_forwards_stage_exc_context() -> None:
     calls: list[tuple[str, BaseException, dict[str, Any]]] = []
-    transport = HTTPTransport(
-        _config(on_error=lambda s, e, c: calls.append((s, e, c)))
-    )
+    transport = HTTPTransport(_config(on_error=lambda s, e, c: calls.append((s, e, c))))
     err = ValueError("boom")
     transport._fire_error_hook("encryption", err, {"k": "v"})
     assert calls == [("encryption", err, {"k": "v"})]
@@ -102,9 +100,7 @@ async def test_hook_fires_on_unencrypted_serialization_abort() -> None:
         "guard_agent.transport.safe_json_serialize",
         side_effect=SerializationError("bad"),
     ):
-        result = await transport._post_unencrypted(
-            "https://example.com/x", {"a": 1}
-        )
+        result = await transport._post_unencrypted("https://example.com/x", {"a": 1})
     assert result is False
     assert captured[0][0] == "transport_send"
 
