@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any, Literal
 from urllib.parse import urlparse
@@ -140,6 +141,16 @@ class AgentConfig(BaseModel):
     payload_signing_secret: str | None = Field(
         default=None,
         description="HMAC-SHA256 secret for X-Payload-Signature header",
+    )
+
+    on_error: Callable[[str, BaseException, dict[str, Any]], None] | None = Field(
+        default=None,
+        description=(
+            "Optional best-effort callback invoked when a transport or encryption "
+            "step fails, receiving (stage, exception, context). stage is one of "
+            "'transport_send' / 'encryption'. A callback that raises is caught and "
+            "logged, never propagated."
+        ),
     )
 
     @field_validator("endpoint")

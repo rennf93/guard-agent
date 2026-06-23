@@ -175,6 +175,19 @@ class HTTPTransport(TransportProtocol):
         if self._client and not self._client.is_closed:
             await self._client.aclose()
 
+    def _fire_error_hook(
+        self, stage: str, exc: BaseException, context: dict[str, Any]
+    ) -> None:
+        hook = self.config.on_error
+        if hook is None:
+            return
+        try:
+            hook(stage, exc, context)
+        except Exception as hook_error:
+            self.logger.error(
+                f"on_error hook raised while handling '{stage}': {hook_error}"
+            )
+
     async def send_events(self, events: list[SecurityEvent]) -> bool:
         """Send security events to the SaaS platform.
 
@@ -308,6 +321,9 @@ class HTTPTransport(TransportProtocol):
                     f"response: {e.detail}"
                 )
                 self.requests_failed += 1
+                self._fire_error_hook(
+                    "transport_send", e, {"endpoint": endpoint, "data_type": data_type}
+                )
                 return False
             except Exception as e:
                 self.logger.warning(
@@ -320,6 +336,11 @@ class HTTPTransport(TransportProtocol):
                 else:
                     self.logger.error(f"All retry attempts failed for {data_type}")
                     self.requests_failed += 1
+                    self._fire_error_hook(
+                        "transport_send",
+                        e,
+                        {"endpoint": endpoint, "data_type": data_type},
+                    )
 
         return False
 
@@ -460,6 +481,7 @@ class HTTPTransport(TransportProtocol):
                 f"Aborting encrypted POST to {encrypted_url}; "
                 f"payload serialization failed and batch retained: {e}"
             )
+            self._fire_error_hook("encryption", e, {"endpoint": encrypted_url})
             return False
         body, headers = self._maybe_compress(json_data)
         signature = sign_payload(body, secret=self.config.payload_signing_secret)
@@ -481,6 +503,7 @@ class HTTPTransport(TransportProtocol):
                 f"Aborting POST to {url}; "
                 f"payload serialization failed and batch retained: {e}"
             )
+            self._fire_error_hook("transport_send", e, {"endpoint": url})
             return False
         body, headers = self._maybe_compress(json_data)
         signature = sign_payload(body, secret=self.config.payload_signing_secret)
