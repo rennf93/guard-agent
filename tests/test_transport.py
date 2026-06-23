@@ -646,7 +646,7 @@ class TestHTTPTransport:
         mock_response.url = "http://test.com"
 
         result = await transport._handle_response(mock_response)
-        assert result is True
+        assert result is False
 
     @pytest.mark.asyncio
     async def test_handle_response_200_non_dict_json(
@@ -745,15 +745,32 @@ class TestHTTPTransport:
     async def test_handle_response_other_client_error(
         self, agent_config: AgentConfig
     ) -> None:
-        """Test _handle_response with other client errors (e.g., 404)."""
+        """Test _handle_response with a non-listed client error (e.g., 451)."""
+        transport = HTTPTransport(agent_config)
+        mock_response = AsyncMock()
+        mock_response.status_code = 451
+        mock_response.text = "Unavailable For Legal Reasons"
+        mock_response.url = "http://test.com"
+
+        result = await transport._handle_response(mock_response)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_handle_response_non_retryable_client_error(
+        self, agent_config: AgentConfig
+    ) -> None:
+        """Test _handle_response raises PermanentClientError on a 4xx like 404."""
+        from guard_agent.exceptions import PermanentClientError
+
         transport = HTTPTransport(agent_config)
         mock_response = AsyncMock()
         mock_response.status_code = 404
         mock_response.text = "Not Found"
         mock_response.url = "http://test.com"
 
-        result = await transport._handle_response(mock_response)
-        assert result is False
+        with pytest.raises(PermanentClientError) as exc_info:
+            await transport._handle_response(mock_response)
+        assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
     async def test_close_client_closed(

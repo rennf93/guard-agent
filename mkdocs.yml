@@ -49,22 +49,8 @@ nav:
     - Tornado: adapters/tornado.md
   - Tutorial:
     - Getting Started: tutorial/getting-started.md
-    - Configuration: tutorial/configuration.md
-    - Integration: tutorial/integration.md
   - API Reference:
     - Overview: api/overview.md
-    - Agent Handler: api/agent-handler.md
-    - Event Buffer: api/event-buffer.md
-    - Transport: api/transport.md
-    - Models: api/models.md
-    - Protocols: api/protocols.md
-    - Utilities: api/utilities.md
-  - Guides:
-    - Advanced Configuration: guides/advanced-configuration.md
-    - Redis Integration: guides/redis-integration.md
-    - Monitoring & Metrics: guides/monitoring.md
-    - Troubleshooting: guides/troubleshooting.md
-  - Examples: examples/index.md
   - Release Notes: release-notes.md
 
 markdown_extensions:

@@ -31,8 +31,8 @@ The following dependencies are automatically managed during installation:
 - A Guard adapter for your framework (install alongside the agent):
     - **`fastapi-guard`** for FastAPI
     - **`flaskapi-guard`** for Flask
-    - **`djangoapi-guard`** for Django
-    - **`tornadoapi-guard`** for Tornado
+    - **`djapi-guard`** for Django
+    - **`tornadoapi-guard`** for Tornado *(coming soon — not yet published on PyPI)*
 - **`redis`** ≥ 6.0.0 - Client library for persistent buffering (production recommended)
 - **Redis Server** 6.0+ - External service for high-availability deployments
 - **ASGI/WSGI Server** - Uvicorn, Hypercorn, Gunicorn, or similar for application hosting
@@ -52,10 +52,10 @@ uv add flaskapi-guard guard-agent
 
 # Django
 uv add djapi-guard guard-agent
-
-# Tornado
-uv add tornadoapi-guard guard-agent
 ```
+
+!!! note "Tornado adapter — coming soon"
+    The Tornado adapter (`tornadoapi-guard`) is not yet published on PyPI. Until it ships, use Guard Agent standalone (see below) for Tornado applications.
 
 For standalone agent deployments (direct wire protocol, no adapter):
 
@@ -68,7 +68,7 @@ uv add guard-agent
 Pin to a specific version for reproducible deployments:
 
 ```bash
-uv add "guard-agent==2.1.0"
+uv add "guard-agent==2.6.0"
 ```
 
 ### Alternative Package Managers
@@ -96,7 +96,7 @@ pip install guard-agent
 Define in `requirements.in`:
 
 ```text
-guard-agent==2.1.0
+guard-agent==2.6.0
 ```
 
 Generate locked requirements:
@@ -374,9 +374,6 @@ async def test():
 Following successful installation of `guard-agent`, proceed with:
 
 1. **[Getting Started Guide](tutorial/getting-started.md)** - Comprehensive implementation walkthrough
-2. **[Configuration Reference](tutorial/configuration.md)** - Detailed configuration parameter documentation
-3. **[Integration Patterns](tutorial/integration.md)** - Advanced integration architectures
-4. **[Implementation Examples](examples/index.md)** - Production-ready deployment patterns
 
 ### Get an API Key
 

@@ -69,13 +69,48 @@ Per-event idempotency keys, configurable overflow policy, and framework-version 
 
 ___
 
+v2.3.0 (2026-04-26)
+-------------------
+
+Production Safety (v2.3.0)
+--------------------------
+- **Fork-safe `GuardAgentHandler` singleton.** Class-level `_instance` survived `os.fork()`, so Gunicorn pre-fork workers all inherited a stale `_initialized=True` flag and dead asyncio task handles from the parent loop. Calling `start()` in the child was a silent no-op and the child never connected to the agent endpoint. Register an `os.register_at_fork(after_in_child=...)` hook that resets `_initialized` and clears inherited task references. Add a per-call PID guard for non-fork-aware multiprocessing setups. Companion fix to the transport-level fork-safety shipped in 2.2.0.
+- **Real watermark-driven early flush.** `EventBuffer._flush_if_needed` was previously a no-op marker — bursts that filled the buffer continued dropping events for the entire flush_interval window even though the early-flush task was scheduled. Trigger a real async flush when buffer occupancy exceeds the high-watermark ratio (default 80%). Cap concurrent flushes via an `asyncio.Semaphore` (default 1) to prevent runaway parallel sends under sustained pressure. New `AgentConfig` fields: `high_watermark_ratio: float = 0.8`, `max_concurrent_flushes: int = 1`. `EventBuffer.stop_auto_flush()` now awaits in-flight watermark-triggered flushes before returning, eliminating data loss on shutdown.
+- **Hard-fail on encryption init.** When the `project_encryption_key` round-trip failed at startup, transport logged a warning and proceeded with plaintext over the wire. Operators got no signal stronger than a log line and could ship traffic encrypted in the dashboard's mind but not on the network. Now raises `EncryptionConfigError` on any startup encryption failure. No plaintext fallback. Operators get a loud failure they can react to.
+
+Internal (v2.3.0)
+-----------------
+- Test coverage maintained at **100%** line + branch across `guard_agent/buffer.py`, `client.py`, `encryption.py`, `models.py`, `protocols.py`, `transport.py`, `utils.py` (1135 statements, 0 missed).
+- Added test coverage to verify `EventBatch.batch_id` is stable across retries (the underlying behavior was already correct in 2.2.0 — the new tests pin it down so future refactors can't regress).
+- Performance tests (`test_agent_performance_impact`, `test_memory_usage`) hardened against coverage-instrumentation noise: `gc.collect()` before RSS baseline, coverage-aware overhead threshold, `enable_redis=False` in test apps to eliminate ResourceWarning pollution.
+- Fixed pre-existing typing gaps in test mocks; all resolved at the root without any suppression directives.
+
+___
+
 v2.2.0 (2026-04-25)
 -------------------
 
-TITLE (v2.2.0)
-------------
+Production Safety (v2.2.0)
+--------------------------
+- **Fork-safe transport.** `HTTPTransport.__init__` registers an `os.register_at_fork(after_in_child=...)` hook that resets the inherited `httpx.AsyncClient`, `CircuitBreaker`, and `RateLimiter` in every forked child. A pid-drift check runs on every send so spawn-style workers (uvicorn `--workers` without `--preload`) get the same protection. Fixes a class of bugs where Gunicorn `--preload` workers would corrupt the shared socket between parent and child.
+- **Observable buffer drops.** `EventBuffer` now exposes `events_dropped` and `metrics_dropped` counters via `get_stats()`. The first drop and every 100th drop log a `WARN`. Previously the deque silently evicted the oldest event when full.
+- **Honor server `Retry-After`.** A 429 response now raises `RateLimitedError(retry_after_seconds=...)`, and `_send_with_retry` / `_get_with_retry` sleep that exact value (capped at 300s) instead of falling back to client-side exponential backoff. Prevents the agent from hammering an already-overloaded SaaS.
+- **Persist-confirm Redis recovery.** Redis persist keys are now `event_{ns}_{uuid8}` / `metric_{ns}_{uuid8}` so two events arriving in the same millisecond no longer collide. Deletion happens only after the transport confirms via the new `confirm_event_redis_keys` / `confirm_metric_redis_keys` helpers, and `requeue_events_in_memory` / `requeue_metrics_in_memory` push unsent events back to the front of the buffer on transport failure. Previously a transport failure cleared both deque and Redis simultaneously, dropping the events permanently.
+- **`BufferProtocol` adds new methods.** `flush_events_with_keys`, `flush_metrics_with_keys`, `confirm_event_redis_keys`, `confirm_metric_redis_keys`, `requeue_events_in_memory`, `requeue_metrics_in_memory`. Custom buffer implementations need to implement these or fall back to the bundled `EventBuffer`.
 
-CONTENT
+Compression (v2.2.0)
+--------------------
+- **Gzip compression of outgoing batch bodies** above `compression_threshold` (default 1024 bytes). When the body exceeds the threshold the agent compresses with gzip and sends `Content-Encoding: gzip`; the Guard Core SaaS decompresses request bodies via its `GzipRequestMiddleware` before pydantic validation. Smaller bodies skip compression and ship as plain JSON.
+- **Default is ON.** `AgentConfig.compression_enabled=True`. Set `compression_enabled=False` if you are pointing the agent at an ingestion endpoint that does not handle `Content-Encoding: gzip` request bodies (e.g. a custom backend without a decompression middleware).
+- `EventBatch.compressed` field now reflects whether the body was actually compressed.
+
+Versioning hygiene (v2.2.0)
+---------------------------
+- `agent_version` in HTTP request headers (`User-Agent`) and batch payloads now derives from `guard_agent.__version__` instead of the hardcoded `"1.1.0"` string the previous releases were sending. SaaS-side analytics that key off `agent_version` will now see the real installed version.
+
+Test coverage (v2.2.0)
+----------------------
+- Test coverage raised to **100%** across `guard_agent/buffer.py`, `client.py`, `encryption.py`, `models.py`, `protocols.py`, `transport.py`, `utils.py` (1053 statements, 0 missed). Adds the previously-missing branches for the fork-hook unavailable path, the Retry-After exhausted-attempts path, the GET retry-after path, the buffer overflow drop accounting, the empty-key forget paths, the Redis-failure swallowing in `confirm_event_redis_keys` / `confirm_metric_redis_keys`, and the `requeue_metrics_in_memory` end-to-end + overflow-drop paths.
 
 ___
 
@@ -101,7 +136,7 @@ v2.0.0 (2026-04-24)
 Package Rename (v2.0.0)
 -----------------------
 - **Renamed on PyPI**: `fastapi-guard-agent` → `guard-agent`. The Python import path (`from guard_agent import ...`) is unchanged — no code changes are required in consuming applications.
-- Repositioned as a framework-agnostic telemetry agent serving `fastapi-guard`, `flaskapi-guard`, `djangoapi-guard`, and `tornadoapi-guard`.
+- Repositioned as a framework-agnostic telemetry agent serving `fastapi-guard`, `flaskapi-guard`, `djapi-guard`, and `tornadoapi-guard`.
 - **Legacy name preserved**: a meta-package `fastapi-guard-agent==1.2.0` is published alongside this release, whose only dependency is `guard-agent>=2.0.0,<3.0.0`. Existing `pip install fastapi-guard-agent` invocations continue to resolve correctly and pull the renamed distribution transitively.
 - Repository renamed on GitHub: `rennf93/fastapi-guard-agent` → `rennf93/guard-agent`. GitHub auto-redirects the old URLs.
 - Documentation site moved to `https://rennf93.github.io/guard-agent/`.

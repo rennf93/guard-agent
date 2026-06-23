@@ -1,9 +1,14 @@
+import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any, Literal
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+_logger = logging.getLogger(__name__)
+_endpoint_suffix_warned = False
 
 KNOWN_EVENT_TYPES = [
     "ip_banned",
@@ -138,10 +143,20 @@ class AgentConfig(BaseModel):
         description="HMAC-SHA256 secret for X-Payload-Signature header",
     )
 
+    on_error: Callable[[str, BaseException, dict[str, Any]], None] | None = Field(
+        default=None,
+        description=(
+            "Optional best-effort callback invoked when a transport or encryption "
+            "step fails, receiving (stage, exception, context). stage is one of "
+            "'transport_send' / 'encryption'. A callback that raises is caught and "
+            "logged, never propagated."
+        ),
+    )
+
     @field_validator("endpoint")
     @classmethod
     def validate_endpoint(cls, v: str) -> str:
-        """Validate that endpoint is a valid URL."""
+        """Validate that endpoint is a valid URL and strip a legacy /api/v1 suffix."""
         if not v:
             raise ValueError("Endpoint URL cannot be empty")
 
@@ -152,7 +167,22 @@ class AgentConfig(BaseModel):
         if parsed.scheme not in ("http", "https"):
             raise ValueError("Endpoint URL must use http or https scheme")
 
-        return v
+        normalized = v.rstrip("/")
+        if normalized.endswith("/api/v1"):
+            global _endpoint_suffix_warned
+            stripped = normalized[: -len("/api/v1")].rstrip("/")
+            if not _endpoint_suffix_warned:
+                _logger.warning(
+                    "Endpoint %r ends with '/api/v1'; transport already appends "
+                    "versioned paths. Stripping suffix to %r. Update your config to "
+                    "set the bare host (e.g. 'https://api.guard-core.com').",
+                    v,
+                    stripped,
+                )
+                _endpoint_suffix_warned = True
+            return stripped
+
+        return normalized
 
 
 class SecurityEvent(BaseModel):

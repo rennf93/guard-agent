@@ -13,6 +13,7 @@ from guard_agent.encryption import (
     PayloadEncryptor,
     create_encryptor,
 )
+from guard_agent.exceptions import PermanentClientError
 from guard_agent.install_id import resolve_install_id
 from guard_agent.models import (
     AgentConfig,
@@ -28,12 +29,15 @@ from guard_agent.utils import (
     CircuitBreaker,
     RateLimitedError,
     RateLimiter,
+    SerializationError,
     calculate_backoff_delay,
     generate_batch_id,
     get_current_timestamp,
     parse_retry_after_seconds,
     safe_json_serialize,
 )
+
+_NON_RETRYABLE_STATUS_CODES = (400, 404, 413, 422)
 
 _MAX_RETRY_AFTER_SECONDS = 300.0
 
@@ -171,8 +175,28 @@ class HTTPTransport(TransportProtocol):
         if self._client and not self._client.is_closed:
             await self._client.aclose()
 
+    def _fire_error_hook(
+        self, stage: str, exc: BaseException, context: dict[str, Any]
+    ) -> None:
+        hook = self.config.on_error
+        if hook is None:
+            return
+        try:
+            hook(stage, exc, context)
+        except Exception as hook_error:
+            self.logger.error(
+                f"on_error hook raised while handling '{stage}': {hook_error}"
+            )
+
     async def send_events(self, events: list[SecurityEvent]) -> bool:
-        """Send security events to the SaaS platform."""
+        """Send security events to the SaaS platform.
+
+        Returns False when the batch was not durably accepted. This now
+        includes a permanently-rejected batch (non-retryable 4xx) and a 200
+        response that reported partial failure; both are surfaced by
+        _send_with_retry as a False result so the caller does not treat the
+        batch as delivered.
+        """
         if not events:
             return True
 
@@ -244,6 +268,32 @@ class HTTPTransport(TransportProtocol):
             self.logger.error(f"Failed to send status: {str(e)}")
             return False
 
+    def _evaluate_send_result(self, result: Any, data_type: str) -> bool | None:
+        """Return True (accepted), False (partial failure), or None (retry)."""
+        if isinstance(result, dict) and (
+            result.get("success") is False or result.get("errors")
+        ):
+            self.logger.warning(
+                f"Server acknowledged {data_type} batch with partial failure: "
+                f"success={result.get('success')!r} errors={result.get('errors')!r}"
+            )
+            self.requests_failed += 1
+            return False
+        if result:
+            self.requests_sent += 1
+            self.logger.debug(f"Successfully sent {data_type} batch")
+            return True
+        self.requests_failed += 1
+        return None
+
+    async def _sleep_or_record_giveup(self, attempt: int, delay: float) -> bool:
+        """Sleep to retry (return True) or record a final failure (return False)."""
+        if attempt < self.config.retry_attempts:
+            await asyncio.sleep(delay)
+            return True
+        self.requests_failed += 1
+        return False
+
     async def _send_with_retry(
         self, endpoint: str, data: dict[str, Any], data_type: str
     ) -> bool:
@@ -258,16 +308,13 @@ class HTTPTransport(TransportProtocol):
                     await asyncio.sleep(retry_after)
                     continue
 
-                success = await self.circuit_breaker.call(
+                result = await self.circuit_breaker.call(
                     self._make_request, "POST", endpoint, data
                 )
 
-                if success:
-                    self.requests_sent += 1
-                    self.logger.debug(f"Successfully sent {data_type} batch")
-                    return True
-                else:
-                    self.requests_failed += 1
+                outcome = self._evaluate_send_result(result, data_type)
+                if outcome is not None:
+                    return outcome
 
             except RateLimitedError as e:
                 delay = min(e.retry_after_seconds, _MAX_RETRY_AFTER_SECONDS)
@@ -275,21 +322,30 @@ class HTTPTransport(TransportProtocol):
                     f"Server rate-limited {data_type}; sleeping {delay:.1f}s "
                     f"per Retry-After"
                 )
-                if attempt < self.config.retry_attempts:
-                    await asyncio.sleep(delay)
-                else:
-                    self.requests_failed += 1
+                await self._sleep_or_record_giveup(attempt, delay)
+            except PermanentClientError as e:
+                self.logger.error(
+                    f"Dropping {data_type} batch; non-retryable {e.status_code} "
+                    f"response: {e.detail}"
+                )
+                self.requests_failed += 1
+                self._fire_error_hook(
+                    "transport_send", e, {"endpoint": endpoint, "data_type": data_type}
+                )
+                return False
             except Exception as e:
                 self.logger.warning(
                     f"Attempt {attempt + 1} failed for {data_type}: {str(e)}"
                 )
 
-                if attempt < self.config.retry_attempts:
-                    delay = calculate_backoff_delay(attempt, self.config.backoff_factor)
-                    await asyncio.sleep(delay)
-                else:
+                delay = calculate_backoff_delay(attempt, self.config.backoff_factor)
+                if not await self._sleep_or_record_giveup(attempt, delay):
                     self.logger.error(f"All retry attempts failed for {data_type}")
-                    self.requests_failed += 1
+                    self._fire_error_hook(
+                        "transport_send",
+                        e,
+                        {"endpoint": endpoint, "data_type": data_type},
+                    )
 
         return False
 
@@ -423,7 +479,15 @@ class HTTPTransport(TransportProtocol):
             "guard_version": self.config.guard_version,
         }
         encrypted_url = f"{self.config.endpoint.rstrip('/')}/api/v1/events/encrypted"
-        json_data = await safe_json_serialize(encrypted_data)
+        try:
+            json_data = await safe_json_serialize(encrypted_data)
+        except SerializationError as e:
+            self.logger.error(
+                f"Aborting encrypted POST to {encrypted_url}; "
+                f"payload serialization failed and batch retained: {e}"
+            )
+            self._fire_error_hook("encryption", e, {"endpoint": encrypted_url})
+            return False
         body, headers = self._maybe_compress(json_data)
         signature = sign_payload(body, secret=self.config.payload_signing_secret)
         if signature is not None:
@@ -437,7 +501,15 @@ class HTTPTransport(TransportProtocol):
     ) -> dict[str, Any] | bool:
         """POST a plain JSON payload."""
         assert self._client is not None
-        json_data = await safe_json_serialize(data)
+        try:
+            json_data = await safe_json_serialize(data)
+        except SerializationError as e:
+            self.logger.error(
+                f"Aborting POST to {url}; "
+                f"payload serialization failed and batch retained: {e}"
+            )
+            self._fire_error_hook("transport_send", e, {"endpoint": url})
+            return False
         body, headers = self._maybe_compress(json_data)
         signature = sign_payload(body, secret=self.config.payload_signing_secret)
         if signature is not None:
@@ -446,19 +518,32 @@ class HTTPTransport(TransportProtocol):
         response = await self._client.post(url, content=body, headers=headers)
         return await self._handle_response(response)
 
+    def _handle_200(self, response: httpx.Response) -> dict[str, Any] | bool:
+        try:
+            json_data = response.json()
+        except Exception as exc:
+            self.logger.warning(
+                f"200 response with unparseable JSON body for {response.url}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return False
+        if isinstance(json_data, dict):
+            success = json_data.get("success")
+            errors = json_data.get("errors")
+            if success is False or errors:
+                self.logger.warning(
+                    f"200 response reported partial failure for {response.url}: "
+                    f"success={success!r} errors={errors!r}"
+                )
+            return json_data
+        return True
+
     async def _handle_response(self, response: httpx.Response) -> dict[str, Any] | bool:
         """Handle HTTP response with proper error checking."""
         self.logger.debug(f"Response: {response.status_code} for {response.url}")
 
         if response.status_code == 200:
-            try:
-                json_data = response.json()
-                if isinstance(json_data, dict):
-                    return json_data
-                else:
-                    return True
-            except Exception:
-                return True
+            return self._handle_200(response)
 
         elif response.status_code == 201:
             return True
@@ -471,6 +556,14 @@ class HTTPTransport(TransportProtocol):
 
         elif response.status_code in [401, 403]:
             raise Exception(f"Authentication failed: {response.status_code}")
+
+        elif response.status_code in _NON_RETRYABLE_STATUS_CODES:
+            error_text = response.text
+            self.logger.error(
+                f"Permanent client error {response.status_code} for {response.url}: "
+                f"{error_text}"
+            )
+            raise PermanentClientError(response.status_code, error_text)
 
         elif response.status_code >= 500:
             error_text = response.text

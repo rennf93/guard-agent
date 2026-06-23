@@ -94,6 +94,12 @@ class GuardAgentHandler(AgentHandlerProtocol):
         self.metrics_failed = 0
         self.rules_fetched = 0
 
+        self._flush_consecutive_failures = 0
+        self._status_consecutive_failures = 0
+        self._rules_consecutive_failures = 0
+        self._loop_error_log_threshold = 3
+        self._last_status_push_ok: bool | None = None
+
         self._cached_rules: DynamicRules | None = None
         self._rules_last_update: float = 0
 
@@ -290,16 +296,30 @@ class GuardAgentHandler(AgentHandlerProtocol):
     async def close(self) -> None:
         await self.stop()
 
+    def _log_loop_failure(self, loop_name: str, count: int, exc: Exception) -> None:
+        message = (
+            f"{loop_name} failed {count} consecutive time(s); "
+            f"cause: {type(exc).__name__}: {exc}"
+        )
+        if count >= self._loop_error_log_threshold:
+            self.logger.error(message)
+        else:
+            self.logger.warning(message)
+
     async def _flush_loop(self) -> None:
         while self._running:
             try:
                 await asyncio.sleep(self.config.flush_interval)
                 if self._running:
                     await self.flush_buffer()
+                self._flush_consecutive_failures = 0
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.logger.error(f"Error in flush loop: {str(e)}")
+                self._flush_consecutive_failures += 1
+                self._log_loop_failure(
+                    "flush loop", self._flush_consecutive_failures, e
+                )
 
     async def _status_loop(self) -> None:
         while self._running:
@@ -307,11 +327,25 @@ class GuardAgentHandler(AgentHandlerProtocol):
                 await asyncio.sleep(self.config.status_interval)
                 if self._running:
                     status = await self.get_status()
-                    await self.transport.send_status(status)
+                    ok = await self.transport.send_status(status)
+                    self._last_status_push_ok = bool(ok)
+                    if ok:
+                        self._status_consecutive_failures = 0
+                    else:
+                        self._status_consecutive_failures += 1
+                        self._log_loop_failure(
+                            "status loop",
+                            self._status_consecutive_failures,
+                            RuntimeError("send_status returned False"),
+                        )
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.logger.error(f"Error in status loop: {str(e)}")
+                self._last_status_push_ok = False
+                self._status_consecutive_failures += 1
+                self._log_loop_failure(
+                    "status loop", self._status_consecutive_failures, e
+                )
 
     async def _rules_loop(self) -> None:
         while self._running:
@@ -319,10 +353,14 @@ class GuardAgentHandler(AgentHandlerProtocol):
                 await asyncio.sleep(self.config.dynamic_rule_interval)
                 if self._running:
                     await self.get_dynamic_rules()
+                self._rules_consecutive_failures = 0
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.logger.error(f"Error in rules loop: {str(e)}")
+                self._rules_consecutive_failures += 1
+                self._log_loop_failure(
+                    "rules loop", self._rules_consecutive_failures, e
+                )
 
     def get_stats(self) -> dict[str, Any]:
         return {
@@ -337,6 +375,12 @@ class GuardAgentHandler(AgentHandlerProtocol):
             "transport_stats": self.transport.get_stats(),
             "cached_rules": self._cached_rules is not None,
             "rules_last_update": self._rules_last_update,
+            "loop_failures": {
+                "flush": self._flush_consecutive_failures,
+                "status": self._status_consecutive_failures,
+                "rules": self._rules_consecutive_failures,
+            },
+            "last_status_push_ok": self._last_status_push_ok,
         }
 
     async def health_check(self) -> bool:

@@ -595,7 +595,8 @@ class TestGuardAgentHandler:
             handler._running = False
             await task
 
-            assert "Error in flush loop: Flush failed" in caplog.text
+            assert "flush loop failed" in caplog.text
+            assert "Exception: Flush failed" in caplog.text
 
     @pytest.mark.asyncio
     async def test_status_loop_exception(
@@ -623,7 +624,9 @@ class TestGuardAgentHandler:
                 mock_sleep.return_value = None
                 await handler._status_loop()
 
-            assert "Error in status loop: Status failed" in caplog.text
+            assert "status loop failed" in caplog.text
+            assert "Exception: Status failed" in caplog.text
+            assert handler._last_status_push_ok is False
 
     @pytest.mark.asyncio
     async def test_rules_loop_exception(
@@ -652,7 +655,8 @@ class TestGuardAgentHandler:
                 mock_sleep.return_value = None
                 await handler._rules_loop()
 
-            assert "Error in rules loop: Rules fetch failed" in caplog.text
+            assert "rules loop failed" in caplog.text
+            assert "Exception: Rules fetch failed" in caplog.text
 
     @pytest.mark.asyncio
     async def test_configuration_validation_failure(self) -> None:

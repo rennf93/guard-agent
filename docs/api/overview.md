@@ -107,21 +107,22 @@ High-performance buffering subsystem engineered for optimal throughput and relia
 **Usage Patterns:**
 ```python
 from guard_agent.buffer import EventBuffer
-from guard_agent.models import SecurityEvent
+from guard_agent.models import AgentConfig, SecurityEvent
 
-# Create buffer
-buffer = EventBuffer(
-    max_size=1000,
-    flush_interval=60,
-    redis_handler=redis_client  # optional
-)
+# Create buffer (sizing comes from AgentConfig.buffer_size / flush_interval)
+config = AgentConfig(api_key="your-api-key")
+buffer = EventBuffer(config, flush_callback=None)
+
+# Optional Redis durability
+await buffer.initialize_redis(redis_client)
 
 # Add events
 await buffer.add_event(security_event)
 await buffer.add_metric(performance_metric)
 
 # Manual flush
-events, metrics = await buffer.flush()
+events = await buffer.flush_events()
+metrics = await buffer.flush_metrics()
 ```
 
 ### 3. HTTP Transport (`HTTPTransport`)
@@ -129,24 +130,25 @@ events, metrics = await buffer.flush()
 Enterprise-grade network layer implementing industry best practices for reliable data delivery.
 
 **Reliability Features:**
-- **Intelligent Retry**: Exponential backoff with jitter prevents thundering herd
+- **Intelligent Retry**: Deterministic exponential backoff (no jitter), capped at 60s per delay
 - **Circuit Breaker**: Automatic failure detection with graceful degradation
-- **Adaptive Rate Limiting**: Dynamic throttling based on backend capacity
+- **Fixed Rate Limiting**: Client-side sliding window (100 req/60s); server `429 Retry-After` is honored separately
 - **Comprehensive Telemetry**: Real-time transport statistics for operational visibility
 
 **Configuration:**
 ```python
 from guard_agent.transport import HTTPTransport
+from guard_agent.models import AgentConfig
 
-transport = HTTPTransport(
-    backend_url="https://your-backend.com",
+# Retry, timeout, and backoff all come from AgentConfig
+config = AgentConfig(
     api_key="your-api-key",
+    endpoint="https://api.guard-core.com",
     timeout=30,
-    max_retries=3,
-    backoff_factor=2.0,
-    rate_limit_requests=100,
-    rate_limit_period=60
+    retry_attempts=3,
+    backoff_factor=1.0,
 )
+transport = HTTPTransport(config)
 ```
 
 ### 4. Data Models
@@ -185,19 +187,21 @@ class GuardAgentHandler:
     # Lifecycle Management
     async def start(self) -> None: ...
     async def stop(self) -> None: ...
-    async def is_running(self) -> bool: ...
+    async def close(self) -> None: ...
 
     # Event & Metric Handling
-    async def send_event(self, event: SecurityEvent) -> None: ...
-    async def send_metric(self, metric: SecurityMetric) -> None: ...
+    async def send_event(self, event: Any) -> None: ...
+    async def send_metric(self, metric: Any) -> None: ...
+    async def flush_buffer(self) -> None: ...
 
     # Status & Health
     async def get_status(self) -> AgentStatus: ...
     async def health_check(self) -> bool: ...
+    def get_stats(self) -> dict[str, Any]: ...
 
-    # Configuration
-    async def update_config(self, config: AgentConfig) -> None: ...
-    async def get_dynamic_rules(self) -> DynamicRules: ...
+    # Redis & Dynamic Rules
+    async def initialize_redis(self, redis_handler: RedisHandlerProtocol) -> None: ...
+    async def get_dynamic_rules(self) -> DynamicRules | None: ...
 ```
 
 **Key Methods:**
@@ -220,20 +224,20 @@ Intelligent event and metric buffering with persistence.
 class EventBuffer:
     def __init__(
         self,
-        max_size: int = 1000,
-        flush_interval: int = 60,
-        redis_handler: Optional[RedisHandlerProtocol] = None
+        config: AgentConfig,
+        flush_callback: Callable[[], Awaitable[None]] | None = None,
     ) -> None: ...
 
     # Data Management
     async def add_event(self, event: SecurityEvent) -> None: ...
     async def add_metric(self, metric: SecurityMetric) -> None: ...
-    async def flush(self) -> Tuple[List[SecurityEvent], List[SecurityMetric]]: ...
+    async def flush_events(self) -> list[SecurityEvent]: ...
+    async def flush_metrics(self) -> list[SecurityMetric]: ...
 
     # Status & Configuration
-    def get_stats(self) -> Dict[str, Any]: ...
-    async def clear(self) -> None: ...
-    def is_full(self) -> bool: ...
+    def get_stats(self) -> dict[str, Any]: ...
+    async def get_buffer_size(self) -> int: ...
+    async def clear_buffer(self) -> None: ...
 ```
 
 ### Transport API
@@ -244,25 +248,22 @@ Enterprise-grade HTTP client with resilience features.
 
 ```python
 class HTTPTransport:
-    def __init__(
-        self,
-        backend_url: str,
-        api_key: str,
-        timeout: int = 30,
-        max_retries: int = 3,
-        backoff_factor: float = 2.0
-    ) -> None: ...
+    def __init__(self, config: AgentConfig) -> None: ...
+
+    # Lifecycle
+    async def initialize(self) -> None: ...
+    async def close(self) -> None: ...
 
     # Data Transmission
-    async def send_batch(self, batch: EventBatch) -> bool: ...
-    async def send_heartbeat(self, status: AgentStatus) -> bool: ...
+    async def send_events(self, events: list[SecurityEvent]) -> bool: ...
+    async def send_metrics(self, metrics: list[SecurityMetric]) -> bool: ...
+    async def send_status(self, status: AgentStatus) -> bool: ...
 
     # Health & Status
-    async def test_connection(self) -> bool: ...
-    def get_stats(self) -> TransportStats: ...
+    def get_stats(self) -> dict[str, Any]: ...
 
-    # Configuration
-    async def update_rules(self) -> Optional[DynamicRules]: ...
+    # Dynamic Rules
+    async def fetch_dynamic_rules(self) -> DynamicRules | None: ...
 ```
 
 ### Models API
@@ -272,11 +273,17 @@ class HTTPTransport:
 **AgentConfig**
 ```python
 class AgentConfig(BaseModel):
-    backend_url: str
     api_key: str
-    buffer_size: int = 1000
-    flush_interval: int = 60
-    enabled: bool = True
+    endpoint: str = "https://api.guard-core.com"
+    project_id: str | None = None
+    buffer_size: int = 100
+    flush_interval: int = 30
+    enable_events: bool = True
+    enable_metrics: bool = True
+
+    retry_attempts: int = 3
+    timeout: int = 30
+    backoff_factor: float = 1.0
 
     compression_enabled: bool = True
     compression_threshold: int = 1024
@@ -297,21 +304,31 @@ class AgentConfig(BaseModel):
 **SecurityEvent**
 ```python
 class SecurityEvent(BaseModel):
-    event_type: EventType
-    source_ip: str
     timestamp: datetime
-    description: str
-    metadata: Optional[Dict[str, Any]] = None
+    event_type: str
+    ip_address: str = ""
+    action_taken: str = ""
+    reason: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
     # ... additional fields
 ```
 
 **SecurityMetric**
 ```python
 class SecurityMetric(BaseModel):
-    metric_type: MetricType
-    value: Union[int, float]
     timestamp: datetime
-    metadata: Optional[Dict[str, Any]] = None
+    metric_type: Literal[
+        "request_count",
+        "response_time",
+        "error_rate",
+        "bandwidth_usage",
+        "threat_level",
+        "block_rate",
+        "cache_hit_rate",
+    ]
+    value: float
+    endpoint: str | None = None
+    tags: dict[str, str] = Field(default_factory=dict)
     # ... additional fields
 ```
 
@@ -440,9 +457,9 @@ async def health_check():
     return {
         "status": "healthy" if agent_healthy else "degraded",
         "agent": {
-            "running": agent_status.is_running,
-            "events_processed": agent_status.events_processed,
-            "last_flush": agent_status.last_flush_time,
+            "status": agent_status.status,
+            "events_sent": agent_status.events_sent,
+            "last_flush": agent_status.last_flush,
             "buffer_size": agent_status.buffer_size
         }
     }
@@ -479,11 +496,10 @@ Advanced failure detection with automatic recovery mechanisms:
 Sophisticated retry algorithms optimize for both reliability and backend protection:
 
 ```python
-# Adaptive retry configuration:
-max_retries: 3                    # Configurable retry limit
-backoff_factor: 2.0              # Exponential growth factor
-jitter: True                     # Randomization prevents synchronized retries
-max_delay: 60                    # Caps maximum retry delay
+# Retry configuration (delay = backoff_factor * 2**attempt, capped at max_delay):
+retry_attempts: 3                # Retries after the first try (~retry_attempts + 1 total attempts)
+backoff_factor: 1.0              # Multiplier on the hardcoded 2**attempt growth
+max_delay: 60                    # Caps maximum retry delay (no jitter)
 ```
 
 ## Performance Engineering
@@ -502,17 +518,17 @@ Advanced techniques minimize bandwidth and latency:
 
 - **Intelligent Batching**: Adaptive batch sizes based on network conditions
 - **Compression**: Automatic gzip compression for payload optimization
-- **Connection Management**: HTTP/2 multiplexing with connection pooling
+- **Connection Management**: HTTP/1.1 with keep-alive connection pooling
 
 ### Deployment Profiles
 
 ```python
 # Microservice deployment (low memory, high frequency)
-config = AgentConfig(buffer_size=100, flush_interval=10)
+config = AgentConfig(api_key="your-api-key", buffer_size=100, flush_interval=10)
 
 # Standard API service (balanced profile)
-config = AgentConfig(buffer_size=1000, flush_interval=30)
+config = AgentConfig(api_key="your-api-key", buffer_size=1000, flush_interval=30)
 
 # High-throughput gateway (optimized for volume)
-config = AgentConfig(buffer_size=10000, flush_interval=60)
+config = AgentConfig(api_key="your-api-key", buffer_size=10000, flush_interval=60)
 ```
