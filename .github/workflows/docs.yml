@@ -15,9 +15,14 @@ on:
       - 'CHANGELOG.md'
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
