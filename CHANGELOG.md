@@ -3,6 +3,26 @@ Release Notes
 
 ___
 
+v2.7.0 (2026-06-23)
+-------------------
+
+Observable transport errors and documented Protocols (v2.7.0)
+-------------------------------------------------------------
+
+### Added
+
+- **`AgentConfig.on_error` hook for observable delivery failures.** New optional `on_error: Callable[[str, BaseException, dict[str, Any]], None]`. `HTTPTransport` fires it at the real failure points — serialization/encryption (`stage="encryption"`), unencrypted serialization and delivery (`stage="transport_send"`), on a permanent client error, and after retry exhaustion — so a host can observe that telemetry could not be shipped. The hook is best-effort and guaranteed never to propagate into the send path: a hook that raises is caught and logged, never destabilizing the application.
+
+### Documentation
+
+- **Documented the integrator-facing Protocols.** `RedisHandlerProtocol`, `TransportProtocol`, `BufferProtocol`, and `AgentHandlerProtocol` upgraded from thin one-line class docstrings to WHAT/WHEN/HOW class contracts plus a per-method docstring on every method, documenting the previously implicit semantics: `send_*` returns `bool` meaning *accepted* (caller requeues on `False`), `None`-on-miss for reads, the buffer's drain → confirm-on-success / requeue-on-failure at-least-once handshake, and TTL in seconds. Docstrings only — no signature, name, or `@runtime_checkable` change.
+
+### Internal
+
+- Refactored `_send_with_retry` / `_handle_response` into smaller helpers (`_evaluate_send_result`, `_sleep_or_record_giveup`, `_handle_200`) to satisfy the complexity gate, and enabled branch coverage. Behavior-preserving.
+
+___
+
 v2.6.0 (2026-05-12)
 -------------------
 
