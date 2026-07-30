@@ -738,7 +738,10 @@ class TestHTTPTransport:
         mock_response.text = "Internal Server Error"
         mock_response.url = "http://test.com"
 
-        with pytest.raises(Exception, match="Server error 500: Internal Server Error"):
+        with pytest.raises(
+            Exception,
+            match="Server error 500 for http://test.com: Internal Server Error",
+        ):
             await transport._handle_response(mock_response)
 
     @pytest.mark.asyncio
@@ -1543,3 +1546,88 @@ class TestLogRequestError:
         assert message.startswith("Unexpected error for POST https://x/y:")
         assert "ValueError" in message
         assert "bad payload" in message
+
+
+class TestResponseBodyBounding:
+    """A branded HTML maintenance page must never flood the customer's logs."""
+
+    @pytest.mark.asyncio
+    async def test_500_with_large_html_body_produces_bounded_single_line_message(
+        self, agent_config: AgentConfig
+    ) -> None:
+        """5xx with a large HTML body: bounded, single-line, has status+url."""
+        transport = HTTPTransport(agent_config)
+        mock_response = AsyncMock()
+        mock_response.status_code = 500
+        huge_body = (
+            "<html><body>\n  <style>.a{color:red}</style>\n"
+            + ("  <div>Under maintenance</div>\n" * 2000)
+            + "</body></html>"
+        )
+        mock_response.text = huge_body
+        mock_response.url = "https://api.guard-core.com/api/v1/events"
+
+        with pytest.raises(Exception) as exc_info:
+            await transport._handle_response(mock_response)
+
+        message = str(exc_info.value)
+        assert "\n" not in message
+        assert len(message) < 500
+        assert "500" in message
+        assert "api.guard-core.com" in message
+        assert huge_body not in message
+        assert "truncated" in message
+        assert str(len(huge_body)) in message
+
+    @pytest.mark.asyncio
+    async def test_4xx_permanent_error_bounds_detail_and_log(
+        self, agent_config: AgentConfig, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Non-retryable 4xx: both the log line and exception detail are bounded."""
+        from guard_agent.exceptions import PermanentClientError
+
+        transport = HTTPTransport(agent_config)
+        mock_response = AsyncMock()
+        mock_response.status_code = 404
+        huge_body = "Not Found\n" * 3000
+        mock_response.text = huge_body
+        mock_response.url = "https://api.guard-core.com/api/v1/events"
+
+        with caplog.at_level("ERROR", logger="guard_agent.transport"):
+            with pytest.raises(PermanentClientError) as exc_info:
+                await transport._handle_response(mock_response)
+
+        assert exc_info.value.status_code == 404
+        assert huge_body not in exc_info.value.detail
+        assert "\n" not in exc_info.value.detail
+        assert len(exc_info.value.detail) < 500
+
+        error_records = [r for r in caplog.records if r.levelname == "ERROR"]
+        assert len(error_records) == 1
+        message = error_records[0].getMessage()
+        assert huge_body not in message
+        assert "\n" not in message
+        assert "404" in message
+
+    @pytest.mark.asyncio
+    async def test_other_client_error_bounds_log_message(
+        self, agent_config: AgentConfig, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A non-listed client error (e.g. 451) also gets a bounded log line."""
+        transport = HTTPTransport(agent_config)
+        mock_response = AsyncMock()
+        mock_response.status_code = 451
+        huge_body = "Unavailable For Legal Reasons " * 500
+        mock_response.text = huge_body
+        mock_response.url = "https://api.guard-core.com/api/v1/events"
+
+        with caplog.at_level("ERROR", logger="guard_agent.transport"):
+            result = await transport._handle_response(mock_response)
+
+        assert result is False
+        error_records = [r for r in caplog.records if r.levelname == "ERROR"]
+        assert len(error_records) == 1
+        message = error_records[0].getMessage()
+        assert huge_body not in message
+        assert "451" in message
+        assert len(message) < 500

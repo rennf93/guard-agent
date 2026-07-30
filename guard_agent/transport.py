@@ -35,6 +35,7 @@ from guard_agent.utils import (
     get_current_timestamp,
     parse_retry_after_seconds,
     safe_json_serialize,
+    summarize_response_body,
 )
 
 _NON_RETRYABLE_STATUS_CODES = (400, 404, 413, 422)
@@ -558,7 +559,7 @@ class HTTPTransport(TransportProtocol):
             raise Exception(f"Authentication failed: {response.status_code}")
 
         elif response.status_code in _NON_RETRYABLE_STATUS_CODES:
-            error_text = response.text
+            error_text = summarize_response_body(response.text)
             self.logger.error(
                 f"Permanent client error {response.status_code} for {response.url}: "
                 f"{error_text}"
@@ -566,12 +567,16 @@ class HTTPTransport(TransportProtocol):
             raise PermanentClientError(response.status_code, error_text)
 
         elif response.status_code >= 500:
-            error_text = response.text
-            raise Exception(f"Server error {response.status_code}: {error_text}")
+            error_text = summarize_response_body(response.text)
+            raise Exception(
+                f"Server error {response.status_code} for {response.url}: {error_text}"
+            )
 
         else:
-            error_text = response.text
-            self.logger.error(f"Client error {response.status_code}: {error_text}")
+            error_text = summarize_response_body(response.text)
+            self.logger.error(
+                f"Client error {response.status_code} for {response.url}: {error_text}"
+            )
             return False
 
     def get_stats(self) -> dict[str, Any]:

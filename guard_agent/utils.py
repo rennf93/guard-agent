@@ -58,6 +58,20 @@ def truncate_payload(payload: str, max_size: int) -> str:
     return payload[:max_size] + "...[TRUNCATED]"
 
 
+def summarize_response_body(text: str, max_length: int = 300) -> str:
+    """Collapse an HTTP response body into a bounded, single-line summary.
+
+    Handles HTML/plain-text error pages as well as JSON: whitespace (including
+    newlines) is collapsed so one response body can never span more than one
+    log line, and the summary is capped at max_length characters with the
+    original length noted when truncated.
+    """
+    collapsed = " ".join(text.split())
+    if len(collapsed) <= max_length:
+        return collapsed
+    return f"{collapsed[:max_length]}... [truncated, {len(text)} chars total]"
+
+
 def hash_ip(ip: str, salt: str = "") -> str:
     """Hash IP address for privacy-conscious telemetry."""
     combined = f"{ip}{salt}"
