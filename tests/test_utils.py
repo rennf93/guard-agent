@@ -21,6 +21,7 @@ from guard_agent.utils import (
     safe_json_serialize,
     sanitize_headers,
     setup_agent_logging,
+    summarize_response_body,
     truncate_payload,
     validate_config,
 )
@@ -64,6 +65,36 @@ class TestUtils:
 
         edge_case_exact_size = truncate_payload("12345", 5)
         assert edge_case_exact_size == "12345"
+
+    def test_summarize_response_body_returns_short_text_unchanged(self) -> None:
+        text = "Event quota exceeded. Upgrade your plan."
+        assert summarize_response_body(text) == text
+
+    def test_summarize_response_body_collapses_whitespace_and_newlines(self) -> None:
+        text = "line one\n  line two\t\tline three\n\n"
+        summary = summarize_response_body(text)
+        assert "\n" not in summary
+        assert "\t" not in summary
+        assert summary == "line one line two line three"
+
+    def test_summarize_response_body_truncates_and_reports_original_length(
+        self,
+    ) -> None:
+        body = "x" * 5000
+        summary = summarize_response_body(body, max_length=300)
+        assert len(summary) < len(body)
+        assert body not in summary
+        assert "truncated" in summary
+        assert "5000" in summary
+
+    def test_summarize_response_body_reports_raw_length_for_whitespace_heavy_html(
+        self,
+    ) -> None:
+        body = ("<div>\n    " * 200) + "maintenance" + ("\n    </div>" * 200)
+        original_length = len(body)
+        summary = summarize_response_body(body, max_length=20)
+        assert "\n" not in summary
+        assert str(original_length) in summary
 
     def test_hash_ip(self) -> None:
         ip = "192.168.1.1"

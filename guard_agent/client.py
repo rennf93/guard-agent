@@ -16,9 +16,12 @@ from guard_agent.models import (
 from guard_agent.protocols import AgentHandlerProtocol, RedisHandlerProtocol
 from guard_agent.transport import HTTPTransport
 from guard_agent.utils import (
+    calculate_backoff_delay,
     get_current_timestamp,
     validate_config,
 )
+
+_PARTIAL_FAILURE_MAX_BACKOFF_SECONDS = 300.0
 
 
 class GuardAgentHandler(AgentHandlerProtocol):
@@ -99,6 +102,11 @@ class GuardAgentHandler(AgentHandlerProtocol):
         self._rules_consecutive_failures = 0
         self._loop_error_log_threshold = 3
         self._last_status_push_ok: bool | None = None
+
+        self._events_failure_streak = 0
+        self._metrics_failure_streak = 0
+        self._events_retry_after = 0.0
+        self._metrics_retry_after = 0.0
 
         self._cached_rules: DynamicRules | None = None
         self._rules_last_update: float = 0
@@ -218,38 +226,86 @@ class GuardAgentHandler(AgentHandlerProtocol):
 
     async def flush_buffer(self) -> None:
         try:
-            events, event_keys = await self.buffer.flush_events_with_keys()
-            if events:
-                success = await self.transport.send_events(events)
-                if success:
-                    await self.buffer.confirm_event_redis_keys(event_keys)
-                    self.events_sent += len(events)
-                    self.logger.debug(f"Flushed {len(events)} events")
-                else:
-                    self.buffer.requeue_events_in_memory(events, event_keys)
-                    self.events_failed += len(events)
-                    self.logger.warning(
-                        f"Failed to send {len(events)} events; "
-                        f"requeued in memory and retained in Redis for retry"
-                    )
-
-            metrics, metric_keys = await self.buffer.flush_metrics_with_keys()
-            if metrics:
-                success = await self.transport.send_metrics(metrics)
-                if success:
-                    await self.buffer.confirm_metric_redis_keys(metric_keys)
-                    self.metrics_sent += len(metrics)
-                    self.logger.debug(f"Flushed {len(metrics)} metrics")
-                else:
-                    self.buffer.requeue_metrics_in_memory(metrics, metric_keys)
-                    self.metrics_failed += len(metrics)
-                    self.logger.warning(
-                        f"Failed to send {len(metrics)} metrics; "
-                        f"requeued in memory and retained in Redis for retry"
-                    )
-
+            await self._flush_events()
+            await self._flush_metrics()
         except Exception as e:
             self.logger.error(f"Error during buffer flush: {str(e)}")
+
+    async def _flush_events(self) -> None:
+        if time.time() < self._events_retry_after:
+            return
+
+        events, event_keys = await self.buffer.flush_events_with_keys()
+        if not events:
+            return
+
+        success = await self.transport.send_events(events)
+        if success:
+            await self.buffer.confirm_event_redis_keys(event_keys)
+            self.events_sent += len(events)
+            self.logger.debug(f"Flushed {len(events)} events")
+            if self._events_failure_streak:
+                self.logger.warning(
+                    f"Events flush recovered after "
+                    f"{self._events_failure_streak} consecutive partial failure(s)"
+                )
+            self._events_failure_streak = 0
+            self._events_retry_after = 0.0
+            return
+
+        self.buffer.requeue_events_in_memory(events, event_keys)
+        self.events_failed += len(events)
+        self._events_failure_streak += 1
+        delay = calculate_backoff_delay(
+            self._events_failure_streak - 1,
+            base_delay=self.config.flush_interval,
+            max_delay=_PARTIAL_FAILURE_MAX_BACKOFF_SECONDS,
+        )
+        self._events_retry_after = time.time() + delay
+        if self._events_failure_streak == 1:
+            self.logger.warning(
+                f"Failed to send {len(events)} events; "
+                f"requeued in memory and retained in Redis for retry; "
+                f"backing off up to {delay:.0f}s between attempts"
+            )
+
+    async def _flush_metrics(self) -> None:
+        if time.time() < self._metrics_retry_after:
+            return
+
+        metrics, metric_keys = await self.buffer.flush_metrics_with_keys()
+        if not metrics:
+            return
+
+        success = await self.transport.send_metrics(metrics)
+        if success:
+            await self.buffer.confirm_metric_redis_keys(metric_keys)
+            self.metrics_sent += len(metrics)
+            self.logger.debug(f"Flushed {len(metrics)} metrics")
+            if self._metrics_failure_streak:
+                self.logger.warning(
+                    f"Metrics flush recovered after "
+                    f"{self._metrics_failure_streak} consecutive partial failure(s)"
+                )
+            self._metrics_failure_streak = 0
+            self._metrics_retry_after = 0.0
+            return
+
+        self.buffer.requeue_metrics_in_memory(metrics, metric_keys)
+        self.metrics_failed += len(metrics)
+        self._metrics_failure_streak += 1
+        delay = calculate_backoff_delay(
+            self._metrics_failure_streak - 1,
+            base_delay=self.config.flush_interval,
+            max_delay=_PARTIAL_FAILURE_MAX_BACKOFF_SECONDS,
+        )
+        self._metrics_retry_after = time.time() + delay
+        if self._metrics_failure_streak == 1:
+            self.logger.warning(
+                f"Failed to send {len(metrics)} metrics; "
+                f"requeued in memory and retained in Redis for retry; "
+                f"backing off up to {delay:.0f}s between attempts"
+            )
 
     async def get_status(self) -> AgentStatus:
         current_time = get_current_timestamp()
