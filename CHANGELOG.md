@@ -3,6 +3,23 @@ Release Notes
 
 ___
 
+v2.7.1 (2026-07-30)
+-------------------
+
+Bounded response-body logging and partial-failure backoff (v2.7.1)
+--------------------------------------------------------------------
+
+### Fixed
+
+- **Unbounded response bodies no longer flood logs.** A branded HTML maintenance page served during a 5xx window caused `response.text` — the full, untruncated body — to be embedded verbatim in exception messages and log lines on every retry, filling a customer's hosting logs with thousands of lines of HTML and inline CSS per request. New `summarize_response_body()` (`guard_agent/utils.py`) collapses all whitespace/newlines into a single line and caps the summary at 300 characters with a truncation-plus-original-length indicator, and is now used at every site in `HTTPTransport._handle_response` where a response body reached a log line or exception message: the non-retryable 4xx path (`PermanentClientError` detail and its log line), the 5xx path (which now also includes the URL, previously missing), and the generic client-error log path. Status code and URL are always kept in the message.
+- **A permanently-rejected 200 (e.g. quota exceeded) no longer retries every 30 seconds forever.** The SaaS platform can answer HTTP 200 with `success=False` for conditions a retry cannot fix (e.g. `"Event quota exceeded. Upgrade your plan."`), which the existing 4xx `PermanentClientError` handling does not cover, so the agent re-sent and re-logged the same rejected batch on every flush indefinitely. `GuardAgentHandler` now tracks consecutive partial failures per data type (events/metrics) and backs off the next attempt with `calculate_backoff_delay` (capped at 5 minutes), resetting on the first success — no reliance on parsing the error message, so it also covers future rejection reasons. The "failed to send" and "recovered" log lines now fire once per streak transition instead of once per flush. Buffered events/metrics are left untouched during the backoff window — never dropped beyond the buffer's existing overflow policy — and are retried once the backoff elapses.
+
+### Internal
+
+- Tests added in `tests/test_client_backoff.py`, `tests/test_transport.py`, and `tests/test_utils.py` covering the bounded-body summarizer (short text unchanged, whitespace/newline collapsing, truncation with original length) and the backoff behavior (skips repeat attempts, logs once per transition, resets on success, preserves buffered events/metrics across the backoff window). Full suite at 406 passed / 2 skipped, coverage maintained at 100% line + 100% branch.
+
+___
+
 v2.7.0 (2026-06-23)
 -------------------
 
