@@ -16,15 +16,14 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, Request
-from guard import SecurityConfig, SecurityMiddleware
-from guard.decorators import SecurityDecorator
+from guard import SecurityConfig, SecurityDecorator, SecurityMiddleware
 
 from guard_agent import (
     AgentConfig,
+    GuardAgentHandler,
     SecurityEvent,
     SecurityMetric,
     get_current_timestamp,
-    guard_agent,
 )
 
 
@@ -50,7 +49,7 @@ async def basic_agent_usage() -> None:
     )
 
     # Get agent instance (singleton)
-    agent = guard_agent(config)
+    agent = GuardAgentHandler(config)
 
     try:
         # Start the agent (only needed for direct usage)
@@ -75,7 +74,7 @@ async def basic_agent_usage() -> None:
         # Example: Send custom metrics
         custom_metric = SecurityMetric(
             timestamp=get_current_timestamp(),
-            metric_type="custom_metric",
+            metric_type="request_count",
             value=42.0,
             endpoint="/api/custom",
             tags={"type": "business_metric", "category": "validation"},
@@ -89,7 +88,7 @@ async def basic_agent_usage() -> None:
         # Get agent status
         status = await agent.get_status()
         print(f"\nDirect agent status: {status.status}")
-        print(f"Events processed: {status.events_processed}")
+        print(f"Events processed: {status.events_sent}")
 
     finally:
         # Stop the agent (only needed for direct usage)
@@ -143,7 +142,7 @@ def create_fastapi_app_with_agent() -> FastAPI:
         buffer_size=50,
         flush_interval=30,
     )
-    agent = guard_agent(agent_config)
+    agent = GuardAgentHandler(agent_config)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
@@ -192,13 +191,13 @@ def create_fastapi_app_with_agent() -> FastAPI:
             api_key="demo-api-key-12345",
             project_id="fastapi-demo",
         )
-        agent = guard_agent(agent_config)
+        agent = GuardAgentHandler(agent_config)
 
         # Send custom business logic event
         event = SecurityEvent(
             timestamp=get_current_timestamp(),
             event_type="custom_rule_triggered",
-            ip_address=request.client.host if request.client else None,
+            ip_address=request.client.host if request.client else "unknown",
             action_taken="logged",
             reason="Custom business logic event",
             endpoint="/custom-event",
@@ -217,7 +216,7 @@ def create_fastapi_app_with_agent() -> FastAPI:
             api_key="demo-api-key-12345",
             project_id="fastapi-demo",
         )
-        agent = guard_agent(agent_config)  # Get singleton instance
+        agent = GuardAgentHandler(agent_config)  # Get singleton instance
 
         try:
             status = await agent.get_status()
