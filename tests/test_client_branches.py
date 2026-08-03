@@ -4,7 +4,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from guard_agent.client import GuardAgentHandler
-from guard_agent.models import AgentConfig
+from guard_agent.exceptions import PayloadTooLargeError
+from guard_agent.models import AgentConfig, SecurityEvent
+from guard_agent.transport import HTTPTransport
 
 
 @pytest.fixture(autouse=True)
@@ -147,3 +149,67 @@ async def test_health_check_true_when_no_attempts(agent_config: AgentConfig) -> 
     result = await handler.health_check()
 
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_flush_events_413_drop_does_not_requeue_and_confirms_redis(
+    agent_config: AgentConfig,
+) -> None:
+    from datetime import datetime, timezone
+
+    agent_config.retry_attempts = 0
+    transport = HTTPTransport(agent_config)
+    transport._client = AsyncMock()
+
+    async def fake_make_request(method, endpoint, data):
+        raise PayloadTooLargeError("too big")
+
+    with patch.object(transport, "_make_request", side_effect=fake_make_request):
+        handler = GuardAgentHandler(agent_config)
+        handler.transport = transport
+        handler.buffer = AsyncMock()
+        handler.buffer.requeue_events_in_memory = MagicMock()
+        handler.buffer.flush_metrics_with_keys.return_value = ([], [])
+
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="1.1.1.1",
+                action_taken="banned",
+                reason="x",
+            )
+        ]
+        event_keys = ["ek1"]
+        handler.buffer.flush_events_with_keys.return_value = (events, event_keys)
+
+        await handler.flush_buffer()
+
+    handler.buffer.confirm_event_redis_keys.assert_awaited_once_with(event_keys)
+    handler.buffer.requeue_events_in_memory.assert_not_called()
+    assert handler.events_sent == len(events)
+    assert handler.events_failed == 0
+    assert handler._events_failure_streak == 0
+
+
+@pytest.mark.asyncio
+async def test_flush_metrics_permanent_rejection_does_not_requeue(
+    agent_config: AgentConfig,
+) -> None:
+    handler = GuardAgentHandler(agent_config)
+    handler.buffer = AsyncMock()
+    handler.transport = AsyncMock()
+    handler.buffer.requeue_metrics_in_memory = MagicMock()
+    handler.buffer.flush_events_with_keys.return_value = ([], [])
+
+    metrics = [MagicMock()]
+    metric_keys = ["mk1"]
+    handler.buffer.flush_metrics_with_keys.return_value = (metrics, metric_keys)
+    handler.transport.send_metrics.return_value = True
+
+    await handler.flush_buffer()
+
+    handler.buffer.confirm_metric_redis_keys.assert_awaited_once_with(metric_keys)
+    handler.buffer.requeue_metrics_in_memory.assert_not_called()
+    assert handler.metrics_sent == len(metrics)
+    assert handler.metrics_failed == 0

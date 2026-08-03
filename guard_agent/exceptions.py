@@ -7,7 +7,7 @@ class BufferFullError(GuardAgentError):
 
 
 class PermanentClientError(GuardAgentError):
-    """Raised on a non-retryable 4xx (400/404/413/422).
+    """Raised on a non-retryable 4xx (400/404/422).
 
     The batch must be dropped, not retried.
     """
@@ -19,3 +19,10 @@ class PermanentClientError(GuardAgentError):
         if detail:
             message = f"{message}: {detail}"
         super().__init__(message)
+
+
+class PayloadTooLargeError(PermanentClientError):
+    """Raised on HTTP 413. The caller splits the batch or drops a singleton."""
+
+    def __init__(self, detail: str = "") -> None:
+        super().__init__(413, detail)
