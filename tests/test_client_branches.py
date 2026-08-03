@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -161,7 +162,9 @@ async def test_flush_events_413_drop_does_not_requeue_and_confirms_redis(
     transport = HTTPTransport(agent_config)
     transport._client = AsyncMock()
 
-    async def fake_make_request(method, endpoint, data):
+    async def fake_make_request(
+        method: str, endpoint: str, data: dict[str, Any]
+    ) -> None:
         raise PayloadTooLargeError("too big")
 
     with patch.object(transport, "_make_request", side_effect=fake_make_request):

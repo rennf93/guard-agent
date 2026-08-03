@@ -1802,6 +1802,39 @@ class TestPayloadTooLargeSplitOrDrop:
         assert all(size <= max_items for size in accepted_sizes)
         assert sum(accepted_sizes) == 3
 
+    @pytest.mark.asyncio
+    async def test_413_all_oversized_drops_without_tripping_circuit(
+        self, agent_config: AgentConfig
+    ) -> None:
+        from guard_agent.exceptions import PayloadTooLargeError
+
+        agent_config.retry_attempts = 0
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        async def fake_make_request(
+            method: str, endpoint: str, data: dict[str, Any]
+        ) -> dict[str, Any]:
+            raise PayloadTooLargeError("every item over cap")
+
+        with patch.object(transport, "_make_request", side_effect=fake_make_request):
+            events = [
+                SecurityEvent(
+                    timestamp=datetime.now(timezone.utc),
+                    event_type="ip_banned",
+                    ip_address="1.1.1.1",
+                    action_taken="banned",
+                    reason="x",
+                )
+                for _ in range(4)
+            ]
+            result = await transport.send_events(events)
+
+        assert result is True
+        assert transport.circuit_breaker.failure_count == 0
+        assert transport.circuit_breaker.state == "CLOSED"
+        assert transport.requests_failed == 4
+
 
 class TestPermanentRejectionDrop:
     """400/404/422 must drop the batch (return True), never requeue."""
@@ -1846,6 +1879,7 @@ class TestPermanentRejectionDrop:
             for r in caplog.records
         )
         assert captured
+        assert isinstance(captured[0][1], PermanentClientError)
         assert captured[0][1].status_code == status_code
         assert captured[0][2]["item_count"] == 3
 
@@ -1913,5 +1947,6 @@ class TestPermanentRejectionDrop:
 
         assert result is True
         assert captured
+        assert isinstance(captured[0][1], PermanentClientError)
         assert captured[0][1].status_code == 400
         assert captured[0][2]["data_type"] == "metrics"
