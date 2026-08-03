@@ -3,6 +3,32 @@ Release Notes
 
 ___
 
+v2.8.0 (2026-08-03)
+-------------------
+
+Split-or-drop on 413, drop on permanent 4xx, standalone logfire mute, library-skills skill (v2.8.0)
+---------------------------------------------------------------------------------------------------
+
+### Fixed
+
+- **413 poison flush loop closed.** The SaaS platform caps request bodies at 256 KiB, so an oversized batch always 413s; guard-agent retried 4xx blindly and requeued the whole batch, producing an infinite serialize+encrypt+POST loop on the event loop. On `PayloadTooLargeError` the batch is now halved and each half retried recursively; a single item that still 413s is dropped (it will never fit). Permanent 4xx (auth, quota, etc.) drops the whole batch via `_drop_permanent_rejection` instead of requeuing forever.
+- **Permanent 4xx no longer trips the circuit breaker.** A permanent 4xx is a healthy server rejecting a payload, not a transient failure. `CircuitBreaker.call` now re-raises `PermanentClientError` before the `except Exception` that increments `failure_count`. Without this, five consecutive 413s opened the breaker; split halves then hit the plain `Exception("Circuit breaker is OPEN")`, which `_send_with_retry` treats as transient, flipping `return left and right` to `False` and requeuing the entire original batch forever. The split fix alone did not close the loop; this one-line guard in the shared function fixes every caller.
+
+### Added
+
+- **Standalone logfire mute.** When guard-core is not imported, guard-agent now mutes its own telemetry pydantic models (`SecurityEvent` / `SecurityMetric` / `EventBatch`) at import via pydantic `plugin_settings`, mirroring guard-core v3.8.1's mute. Closes the standalone-guard-agent edge case where a host's bare `instrument_pydantic()` emitted guard-event validation spans.
+- **Library-skills skill** embedded at `guard_agent/.agents/skills/guard-agent/SKILL.md` so `uvx library-skills --claude` discovers guard-agent from the installed wheel.
+
+### Internal
+
+- `examples/basic_usage.py` import-path, async-handler, and typing bugs fixed.
+
+### Behaviour changes
+
+- Oversized batches that 413 are now split and dropped instead of requeued forever; permanent-4xx batches are dropped instead of retried. Callers that relied on infinite requeue will see batches drop (the intended behavior).
+
+___
+
 v2.7.1 (2026-07-30)
 -------------------
 

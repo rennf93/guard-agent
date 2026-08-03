@@ -86,8 +86,9 @@ async def test_hook_fires_on_permanent_client_error() -> None:
     with patch.object(
         transport, "_make_request", side_effect=PermanentClientError(400, "bad")
     ):
-        assert await transport.send_events([_event()]) is False
+        assert await transport.send_events([_event()]) is True
     assert captured[0][0] == "transport_send"
+    assert isinstance(captured[0][1], PermanentClientError)
 
 
 async def test_hook_fires_on_unencrypted_serialization_abort() -> None:

@@ -776,6 +776,25 @@ class TestHTTPTransport:
         assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
+    async def test_handle_response_413_raises_payload_too_large_error(
+        self, agent_config: AgentConfig
+    ) -> None:
+        from guard_agent.exceptions import PayloadTooLargeError
+
+        transport = HTTPTransport(agent_config)
+        mock_response = AsyncMock()
+        mock_response.status_code = 413
+        mock_response.text = "Request Entity Too Large"
+        mock_response.url = "http://test.com"
+
+        with pytest.raises(PayloadTooLargeError) as exc_info:
+            await transport._handle_response(mock_response)
+        assert exc_info.value.status_code == 413
+        from guard_agent.exceptions import PermanentClientError as _PCE
+
+        assert isinstance(exc_info.value, _PCE)
+
+    @pytest.mark.asyncio
     async def test_close_client_closed(
         self, agent_config: AgentConfig, mock_client: AsyncMock
     ) -> None:
@@ -1631,3 +1650,303 @@ class TestResponseBodyBounding:
         assert huge_body not in message
         assert "451" in message
         assert len(message) < 500
+
+
+class TestPayloadTooLargeSplitOrDrop:
+    """HTTP 413 must split the batch recursively or drop a singleton, never requeue."""
+
+    @pytest.mark.asyncio
+    async def test_413_splits_batch_until_each_half_fits(
+        self, agent_config: AgentConfig
+    ) -> None:
+        from guard_agent.exceptions import PayloadTooLargeError
+
+        agent_config.retry_attempts = 0
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        max_items = 2
+        accepted_sizes: list[int] = []
+
+        async def fake_make_request(
+            method: str, endpoint: str, data: dict[str, Any]
+        ) -> dict[str, Any]:
+            count = len(data.get("events", []))
+            if count > max_items:
+                raise PayloadTooLargeError("too big")
+            accepted_sizes.append(count)
+            return {"status": "ok"}
+
+        with patch.object(transport, "_make_request", side_effect=fake_make_request):
+            events = [
+                SecurityEvent(
+                    timestamp=datetime.now(timezone.utc),
+                    event_type="ip_banned",
+                    ip_address="1.1.1.1",
+                    action_taken="banned",
+                    reason="x",
+                )
+                for _ in range(5)
+            ]
+            result = await transport.send_events(events)
+
+        assert result is True
+        assert accepted_sizes, "no batch was accepted"
+        assert all(size <= max_items for size in accepted_sizes)
+        assert sum(accepted_sizes) == 5
+
+    @pytest.mark.asyncio
+    async def test_413_on_single_item_drops_with_warning_and_hook(
+        self,
+        agent_config: AgentConfig,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        from guard_agent.exceptions import PayloadTooLargeError
+
+        agent_config.retry_attempts = 0
+        captured: list[tuple[str, BaseException, dict[str, Any]]] = []
+        agent_config.on_error = lambda s, e, c: captured.append((s, e, c))
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        async def fake_make_request(
+            method: str, endpoint: str, data: dict[str, Any]
+        ) -> dict[str, Any]:
+            raise PayloadTooLargeError("still too big")
+
+        with patch.object(transport, "_make_request", side_effect=fake_make_request):
+            with caplog.at_level("WARNING", logger="guard_agent.transport"):
+                events = [
+                    SecurityEvent(
+                        timestamp=datetime.now(timezone.utc),
+                        event_type="ip_banned",
+                        ip_address="1.1.1.1",
+                        action_taken="banned",
+                        reason="x",
+                    )
+                ]
+                result = await transport.send_events(events)
+
+        assert result is True
+        assert any(
+            "Dropping events batch of 1 item" in r.getMessage() for r in caplog.records
+        )
+        assert captured
+        assert isinstance(captured[0][1], PayloadTooLargeError)
+        assert captured[0][2]["item_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_413_does_not_escape_as_payload_too_large_error(
+        self, agent_config: AgentConfig
+    ) -> None:
+        from guard_agent.exceptions import PayloadTooLargeError
+
+        agent_config.retry_attempts = 0
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        async def fake_make_request(
+            method: str, endpoint: str, data: dict[str, Any]
+        ) -> dict[str, Any]:
+            raise PayloadTooLargeError("too big")
+
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="1.1.1.1",
+                action_taken="banned",
+                reason="x",
+            )
+        ]
+        with patch.object(transport, "_make_request", side_effect=fake_make_request):
+            result = await transport.send_events(events)
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_413_splits_metrics_until_each_half_fits(
+        self, agent_config: AgentConfig
+    ) -> None:
+        from guard_agent.exceptions import PayloadTooLargeError
+
+        agent_config.retry_attempts = 0
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        max_items = 1
+        accepted_sizes: list[int] = []
+
+        async def fake_make_request(
+            method: str, endpoint: str, data: dict[str, Any]
+        ) -> dict[str, Any]:
+            count = len(data.get("metrics", []))
+            if count > max_items:
+                raise PayloadTooLargeError("too big")
+            accepted_sizes.append(count)
+            return {"status": "ok"}
+
+        with patch.object(transport, "_make_request", side_effect=fake_make_request):
+            metrics = [
+                SecurityMetric(
+                    timestamp=datetime.now(timezone.utc),
+                    metric_type="request_count",
+                    value=1.0,
+                )
+                for _ in range(3)
+            ]
+            result = await transport.send_metrics(metrics)
+
+        assert result is True
+        assert accepted_sizes, "no batch was accepted"
+        assert all(size <= max_items for size in accepted_sizes)
+        assert sum(accepted_sizes) == 3
+
+    @pytest.mark.asyncio
+    async def test_413_all_oversized_drops_without_tripping_circuit(
+        self, agent_config: AgentConfig
+    ) -> None:
+        from guard_agent.exceptions import PayloadTooLargeError
+
+        agent_config.retry_attempts = 0
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        async def fake_make_request(
+            method: str, endpoint: str, data: dict[str, Any]
+        ) -> dict[str, Any]:
+            raise PayloadTooLargeError("every item over cap")
+
+        with patch.object(transport, "_make_request", side_effect=fake_make_request):
+            events = [
+                SecurityEvent(
+                    timestamp=datetime.now(timezone.utc),
+                    event_type="ip_banned",
+                    ip_address="1.1.1.1",
+                    action_taken="banned",
+                    reason="x",
+                )
+                for _ in range(4)
+            ]
+            result = await transport.send_events(events)
+
+        assert result is True
+        assert transport.circuit_breaker.failure_count == 0
+        assert transport.circuit_breaker.state == "CLOSED"
+        assert transport.requests_failed == 4
+
+
+class TestPermanentRejectionDrop:
+    """400/404/422 must drop the batch (return True), never requeue."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("status_code", [400, 404, 422])
+    async def test_permanent_rejection_drops_batch_and_fires_hook(
+        self,
+        agent_config: AgentConfig,
+        status_code: int,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        from guard_agent.exceptions import PermanentClientError
+
+        agent_config.retry_attempts = 0
+        captured: list[tuple[str, BaseException, dict[str, Any]]] = []
+        agent_config.on_error = lambda s, e, c: captured.append((s, e, c))
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        with patch.object(
+            transport,
+            "_make_request",
+            side_effect=PermanentClientError(status_code, "rejected"),
+        ):
+            with caplog.at_level("WARNING", logger="guard_agent.transport"):
+                events = [
+                    SecurityEvent(
+                        timestamp=datetime.now(timezone.utc),
+                        event_type="ip_banned",
+                        ip_address="1.1.1.1",
+                        action_taken="banned",
+                        reason="x",
+                    )
+                    for _ in range(3)
+                ]
+                result = await transport.send_events(events)
+
+        assert result is True
+        assert any(
+            f"permanently rejected ({status_code})" in r.getMessage()
+            for r in caplog.records
+        )
+        assert captured
+        assert isinstance(captured[0][1], PermanentClientError)
+        assert captured[0][1].status_code == status_code
+        assert captured[0][2]["item_count"] == 3
+
+    @pytest.mark.asyncio
+    async def test_permanent_rejection_does_not_recurse_or_split(
+        self, agent_config: AgentConfig
+    ) -> None:
+        from guard_agent.exceptions import PermanentClientError
+
+        agent_config.retry_attempts = 0
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        call_count = 0
+
+        async def fake_make_request(
+            method: str, endpoint: str, data: dict[str, Any]
+        ) -> dict[str, Any]:
+            nonlocal call_count
+            call_count += 1
+            raise PermanentClientError(422, "rejected")
+
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="1.1.1.1",
+                action_taken="banned",
+                reason="x",
+            )
+            for _ in range(4)
+        ]
+        with patch.object(transport, "_make_request", side_effect=fake_make_request):
+            result = await transport.send_events(events)
+
+        assert result is True
+        assert call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_permanent_rejection_drops_metrics_batch(
+        self, agent_config: AgentConfig
+    ) -> None:
+        from guard_agent.exceptions import PermanentClientError
+
+        agent_config.retry_attempts = 0
+        captured: list[tuple[str, BaseException, dict[str, Any]]] = []
+        agent_config.on_error = lambda s, e, c: captured.append((s, e, c))
+        transport = HTTPTransport(agent_config)
+        transport._client = AsyncMock()
+
+        with patch.object(
+            transport,
+            "_make_request",
+            side_effect=PermanentClientError(400, "bad metric"),
+        ):
+            metrics = [
+                SecurityMetric(
+                    timestamp=datetime.now(timezone.utc),
+                    metric_type="request_count",
+                    value=1.0,
+                )
+                for _ in range(2)
+            ]
+            result = await transport.send_metrics(metrics)
+
+        assert result is True
+        assert captured
+        assert isinstance(captured[0][1], PermanentClientError)
+        assert captured[0][1].status_code == 400
+        assert captured[0][2]["data_type"] == "metrics"

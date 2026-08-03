@@ -7,6 +7,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
+from guard_agent.exceptions import PermanentClientError
 from guard_agent.models import AgentConfig
 
 
@@ -216,6 +217,8 @@ class CircuitBreaker:
             result = await func(*args, **kwargs)
             await self._on_success()
             return result
+        except PermanentClientError:
+            raise
         except Exception as e:
             await self._on_failure()
             raise e

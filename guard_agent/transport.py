@@ -2,6 +2,7 @@ import asyncio
 import gzip
 import logging
 import os
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import httpx
@@ -13,7 +14,7 @@ from guard_agent.encryption import (
     PayloadEncryptor,
     create_encryptor,
 )
-from guard_agent.exceptions import PermanentClientError
+from guard_agent.exceptions import PayloadTooLargeError, PermanentClientError
 from guard_agent.install_id import resolve_install_id
 from guard_agent.models import (
     AgentConfig,
@@ -192,11 +193,11 @@ class HTTPTransport(TransportProtocol):
     async def send_events(self, events: list[SecurityEvent]) -> bool:
         """Send security events to the SaaS platform.
 
-        Returns False when the batch was not durably accepted. This now
-        includes a permanently-rejected batch (non-retryable 4xx) and a 200
-        response that reported partial failure; both are surfaced by
-        _send_with_retry as a False result so the caller does not treat the
-        batch as delivered.
+        Returns True when the batch was durably accepted OR intentionally
+        dropped because it is permanently un-sendable (non-retryable 4xx);
+        the caller deletes Redis keys and does not requeue in both cases.
+        Returns False only on transient failure, so the caller requeues and
+        retains the Redis keys for retry.
         """
         if not events:
             return True
@@ -215,6 +216,13 @@ class HTTPTransport(TransportProtocol):
                 "/api/v1/events", batch.model_dump(), "events"
             )
 
+        except PayloadTooLargeError as e:
+            return await self._split_or_drop_on_payload_too_large(
+                events, e, "events", self.send_events
+            )
+        except PermanentClientError as e:
+            self._drop_permanent_rejection(events, e, "events")
+            return True
         except Exception as e:
             self.logger.error(f"Failed to send events: {str(e)}")
             self.requests_failed += 1
@@ -239,10 +247,55 @@ class HTTPTransport(TransportProtocol):
                 "/api/v1/metrics", batch.model_dump(), "metrics"
             )
 
+        except PayloadTooLargeError as e:
+            return await self._split_or_drop_on_payload_too_large(
+                metrics, e, "metrics", self.send_metrics
+            )
+        except PermanentClientError as e:
+            self._drop_permanent_rejection(metrics, e, "metrics")
+            return True
         except Exception as e:
             self.logger.error(f"Failed to send metrics: {str(e)}")
             self.requests_failed += 1
             return False
+
+    async def _split_or_drop_on_payload_too_large(
+        self,
+        items: list,
+        error: PayloadTooLargeError,
+        data_type: str,
+        send_half: Callable[[list], Awaitable[bool]],
+    ) -> bool:
+        if len(items) <= 1:
+            self.logger.warning(
+                f"Dropping {data_type} batch of {len(items)} item; "
+                f"payload exceeds size cap even as a single item: {error.detail}"
+            )
+            self.requests_failed += 1
+            self._fire_error_hook(
+                "transport_send",
+                error,
+                {"data_type": data_type, "item_count": len(items)},
+            )
+            return True
+        midpoint = len(items) // 2
+        left = await send_half(items[:midpoint])
+        right = await send_half(items[midpoint:])
+        return left and right
+
+    def _drop_permanent_rejection(
+        self, items: list, error: PermanentClientError, data_type: str
+    ) -> None:
+        self.logger.warning(
+            f"Dropping {data_type} batch of {len(items)} item(s); "
+            f"permanently rejected ({error.status_code}): {error.detail}"
+        )
+        self.requests_failed += 1
+        self._fire_error_hook(
+            "transport_send",
+            error,
+            {"data_type": data_type, "item_count": len(items)},
+        )
 
     async def fetch_dynamic_rules(self) -> DynamicRules | None:
         """Fetch dynamic rules from the SaaS platform."""
@@ -324,16 +377,8 @@ class HTTPTransport(TransportProtocol):
                     f"per Retry-After"
                 )
                 await self._sleep_or_record_giveup(attempt, delay)
-            except PermanentClientError as e:
-                self.logger.error(
-                    f"Dropping {data_type} batch; non-retryable {e.status_code} "
-                    f"response: {e.detail}"
-                )
-                self.requests_failed += 1
-                self._fire_error_hook(
-                    "transport_send", e, {"endpoint": endpoint, "data_type": data_type}
-                )
-                return False
+            except PermanentClientError:
+                raise
             except Exception as e:
                 self.logger.warning(
                     f"Attempt {attempt + 1} failed for {data_type}: {str(e)}"
@@ -564,6 +609,8 @@ class HTTPTransport(TransportProtocol):
                 f"Permanent client error {response.status_code} for {response.url}: "
                 f"{error_text}"
             )
+            if response.status_code == 413:
+                raise PayloadTooLargeError(error_text)
             raise PermanentClientError(response.status_code, error_text)
 
         elif response.status_code >= 500:
