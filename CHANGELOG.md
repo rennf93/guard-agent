@@ -3,6 +3,28 @@ Release Notes
 
 ___
 
+v2.8.1 (2026-08-09)
+-------------------
+
+Documentation accuracy sweep: six snippets showed middleware that never attaches (v2.8.1)
+-----------------------------------------------------------------------------------------
+
+### Fixed
+
+- **Six documented snippets built a middleware that was never installed.** `SecurityMiddleware(app, config=config)` constructs the middleware and discards it; only `app.add_middleware(SecurityMiddleware, config=config)` installs it, which is observable as `len(app.user_middleware)` staying at zero. This affected `docs/tutorial/getting-started.md` in three places, including the block labelled "The recommended deployment", plus `docs/api/overview.md`, `docs/installation.md`'s configuration-verification script (which printed a success message regardless of whether anything was wired), and `examples/basic_usage.py`. Anyone copying them ran an application with no security middleware and no telemetry, with nothing to indicate it.
+- **`examples/basic_usage.py` presented the duplicate-singleton anti-pattern as recommended.** It hand-built an `AgentConfig` and wired its own lifespan, which creates an agent handler that never receives traffic and leaves the dashboard empty. It now uses the supported path, where `SecurityConfig`'s `agent_*` fields drive the agent the middleware itself builds.
+- **`buffer_size` guidance contradicted itself.** The README showed `5000` while the in-wheel skill said keep the default of 100. The 256 KiB request body cap is real and enforced server side, and no client side batch count limit exists anywhere in the agent. All surfaces now agree on 100.
+- **The pydantic plugin mute was described as unconditional.** It is not. An `ImportError` on `guard_agent.models` returns silently with nothing logged, all three models share one `try`/`except` so a failure on the first leaves the rest unmuted, and it runs once at import with no retry, making a failure permanent for the process. The documentation now states what actually holds, and describes the mute in the README and `docs/index.md` for the first time.
+- **`make lint-docs` was scanning almost nothing.** Repeated `-e` flags do not accumulate in pymarkdownlnt, so every exclusion but the last was silently discarded, and YAML front matter was being misparsed as heading content. Exclusions moved to `[tool.pymarkdown.system] exclude_path`, with the package directory deliberately left in scope so the shipped in-wheel skill is linted. The gate now exits zero against a real scan.
+- **`guard_agent.__version__` reported the wrong version.** `guard_agent/_version.py` was left at `2.7.1` when 2.8.0 was released, while `pyproject.toml` said `2.8.0`. That file is the single source of truth imported by `guard_agent.__init__`, and it feeds the transport's User-Agent header and `EventBatch.agent_version`, so telemetry emitted by 2.8.0 identified itself as 2.7.1 to the platform. It is now `2.8.1`, matching the package metadata.
+- **Rendered list structure in the troubleshooting and validation sections.** Code fences separated from their list items by a blank line need a four space indent for python-markdown to keep them inside the item; at three spaces each item fractured into its own single-item list with the fence orphaned beside it. Neither pymarkdownlnt nor `mkdocs build --strict` detects this, so it was verified against the built HTML.
+
+### Documentation
+
+- Roughly sixteen further corrections across the README, `docs/`, the in-wheel skill and the example, each verified against the code as shipped rather than against neighbouring documentation. No runtime behaviour changed in this release.
+
+___
+
 v2.8.0 (2026-08-03)
 -------------------
 
