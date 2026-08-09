@@ -232,6 +232,8 @@ ___
 
 ## Advanced Configuration
 
+These examples continue the standalone, direct-construction usage from [Advanced Usage Pattern](#advanced-usage-pattern) above and carry the same caveat: only in a process with no adapter middleware enabling the agent through `SecurityConfig`.
+
 ### Redis Integration
 
 For production deployments, enable Redis for persistent buffering:
@@ -413,6 +415,12 @@ config = AgentConfig(
     timeout=30,            # Request timeout
 )
 ```
+
+___
+
+## Logfire / Pydantic Plugin Instrumentation
+
+`SecurityEvent` and `SecurityMetric` are validated on every request, and `EventBatch` re-validates every buffered event on each flush — enough volume that a host app calling `logfire.instrument_pydantic()` would otherwise get a validation span per security event. `guard_agent`'s `__init__` mutes this automatically: at import time it sets `model_config["plugin_settings"]["logfire"] = {"record": "off"}` on `SecurityEvent`, `SecurityMetric`, and `EventBatch`, then force-rebuilds each model so the setting takes effect. This runs whether or not `logfire` is installed, is idempotent (guard-core applies the identical mute to the same models at its own import), and degrades to a logged warning rather than crashing the import if a rebuild fails. No workaround is needed on the host side — the mute is unconditional and requires no configuration.
 
 ___
 

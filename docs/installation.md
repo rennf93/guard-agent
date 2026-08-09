@@ -68,7 +68,7 @@ uv add guard-agent
 Pin to a specific version for reproducible deployments:
 
 ```bash
-uv add "guard-agent==2.6.0"
+uv add "guard-agent==2.8.0"
 ```
 
 ### Alternative Package Managers
@@ -96,7 +96,7 @@ pip install guard-agent
 Define in `requirements.in`:
 
 ```text
-guard-agent==2.6.0
+guard-agent==2.8.0
 ```
 
 Generate locked requirements:
@@ -259,7 +259,7 @@ config = SecurityConfig(
 )
 
 # Add middleware - agent starts automatically
-middleware = SecurityMiddleware(app, config=config)
+app.add_middleware(SecurityMiddleware, config=config)
 
 @app.get("/")
 async def root():

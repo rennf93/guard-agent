@@ -153,7 +153,7 @@ Compatibility:
 | **Guard Core SaaS (`https://api.guard-core.com`)** | Works as-is. The SaaS decompresses gzip request bodies via its `GzipRequestMiddleware` before pydantic validation. No customer action required. |
 | **Custom ingestion endpoint without gzip request decoding** | Build the agent with `AgentConfig(..., compression_enabled=False)`. Most plain FastAPI / Flask / Django apps do not auto-decompress gzip *request* bodies; compressed batches will fail body parsing on those backends. |
 
-Tuning is done on `AgentConfig` directly (the agent transport owns compression; `SecurityConfig` does not forward these knobs):
+Tuning is done on `AgentConfig` directly (the agent transport owns compression; `SecurityConfig` does not forward these knobs). This means there is currently no way to change compression settings for an agent driven by `enable_agent=True` on `SecurityConfig` — the snippet below only applies to a standalone agent in a process with no adapter middleware enabling the agent through `SecurityConfig`:
 
 ```python
 from guard_agent import guard_agent, AgentConfig
@@ -338,7 +338,7 @@ except Exception as e:
 
 ### Custom Event Handling (Advanced)
 
-For scenarios requiring custom business logic events beyond standard security violations:
+For scenarios requiring custom business logic events beyond standard security violations, with no FastAPI Guard middleware enabling the agent in the same process. Do not combine this with the `enable_agent=True` `SecurityConfig` pattern shown earlier in this guide — `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the two are separate singletons and only the middleware's instance receives traffic:
 
 ```python
 from guard_agent import guard_agent, AgentConfig, SecurityEvent

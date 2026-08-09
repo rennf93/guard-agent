@@ -146,6 +146,7 @@ Key Features
 -   **Real-Time Security Updates**: Supports dynamic security policy updates from the centralized management platform, enabling immediate threat response without service interruption.
 -   **Extensible Architecture**: Designed with protocol-based abstractions, allowing seamless integration with custom transport layers, storage backends, and monitoring systems.
 -   **Comprehensive Security Intelligence**: Captures granular security events and performance metrics, providing actionable insights for security operations and compliance requirements.
+-   **Instrumentation-Safe by Default**: Mutes pydantic plugin instrumentation (e.g. `logfire.instrument_pydantic()`) on its own telemetry models at import, so a host app doesn't get a validation span per security event without doing anything itself.
 
 ---
 
@@ -236,7 +237,7 @@ With `enable_agent=True`, the agent automatically:
 Advanced Configuration
 ----------------------
 
-For standalone use or custom event handling, instantiate the agent directly:
+For standalone use or custom event handling with no adapter middleware in the same process, instantiate the agent directly:
 
 ```python
 from guard_agent.client import guard_agent
@@ -249,6 +250,8 @@ config = AgentConfig(
 
 agent = guard_agent(config)
 ```
+
+Do not do this in a process that also runs an adapter with `enable_agent=True` — `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the two are separate singletons and only the middleware's instance receives traffic. Configure `agent_*` fields on `SecurityConfig` instead.
 
 ### Configuration Parameters
 
