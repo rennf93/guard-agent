@@ -20,7 +20,7 @@ Framework-agnostic telemetry and monitoring agent for the Guard ecosystem. Buffe
 
 `guard_agent` is imported by a framework adapter (fastapi-guard, flaskapi-guard, djapi-guard, tornadoapi-guard); you rarely instantiate it directly. When you do, build an `AgentConfig` and use the `guard_agent` factory, which returns a `GuardAgentHandler` in an async context or a `SyncGuardAgentHandler` in a sync context.
 
-Only do this in a process with no adapter enabling the agent through `SecurityConfig`. Combined with an adapter, `guard_agent()` returns a different singleton than the middleware's — sync module-load context dispatches to `SyncGuardAgentHandler`, the middleware's async init dispatches to `GuardAgentHandler` — so events sent through the one you built here never reach the dashboard. Configure `agent_*` fields on `SecurityConfig` instead.
+Only do this in a process with no adapter enabling the agent through `SecurityConfig`. Combined with an adapter, `guard_agent()` returns a different singleton than the middleware's (sync module-load context dispatches to `SyncGuardAgentHandler`, the middleware's async init dispatches to `GuardAgentHandler`), so events sent through the one you built here never reach the dashboard. Configure `agent_*` fields on `SecurityConfig` instead.
 
 ```python
 from guard_agent import AgentConfig, guard_agent

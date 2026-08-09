@@ -104,7 +104,7 @@ def create_fastapi_app_with_agent() -> FastAPI:
     app's event loop. This matches the canonical pattern in
     ``guard-core-app/examples/app.py``. Do **not** build an ``AgentConfig``,
     call ``guard_agent()``/``GuardAgentHandler()``, or wire your own
-    ``lifespan`` here — that constructs a second agent that never receives
+    ``lifespan`` here: that constructs a second agent that never receives
     traffic and leaves the dashboard empty.
     """
     print("\n=== fastapi-guard + Guard Agent Integration (Recommended) ===")
@@ -137,8 +137,7 @@ def create_fastapi_app_with_agent() -> FastAPI:
 
     app = FastAPI(title="Guard Agent Example (FastAPI)", lifespan=guard_lifespan)
 
-    # Attach middleware and decorator. guard_lifespan (imported above) starts
-    # and stops the agent the middleware built; nothing else to wire.
+    # Attach middleware and decorator
     app.add_middleware(SecurityMiddleware, config=security_config)
     guard = SecurityDecorator(security_config)
     app.state.guard_decorator = guard

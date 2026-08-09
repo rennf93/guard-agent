@@ -71,13 +71,13 @@ config = SecurityConfig(
 )
 
 app = FastAPI()
-middleware = SecurityMiddleware(app, config=config)
+app.add_middleware(SecurityMiddleware, config=config)
 # Agent starts automatically with middleware
 ```
 
 **Direct Usage (Advanced):**
 
-Only for a process with no framework adapter (fastapi-guard, flaskapi-guard, djapi-guard, tornadoapi-guard) enabling the agent through `SecurityConfig`. Doing this alongside an adapter with `enable_agent=True` builds a second singleton that never receives traffic — `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the events you send here don't reach the dashboard.
+Only for a process with no framework adapter (fastapi-guard, flaskapi-guard, djapi-guard, tornadoapi-guard) enabling the agent through `SecurityConfig`. Doing this alongside an adapter with `enable_agent=True` builds a second singleton that never receives traffic. `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the events you send here don't reach the dashboard.
 
 ```python
 from guard_agent import guard_agent, AgentConfig
@@ -370,7 +370,7 @@ app.add_middleware(SecurityMiddleware, config=config)
 
 ### Pattern 2: Custom Event Integration
 
-Patterns 2 through 4 below build a standalone agent with `guard_agent(AgentConfig(...))`. That is only safe in a process with no adapter middleware enabling the agent through `SecurityConfig` — combined with Pattern 1 in the same process, `guard_agent()` returns a different singleton (`SyncGuardAgentHandler` from sync context vs. the middleware's `GuardAgentHandler`), and events sent through it never reach the dashboard.
+Patterns 2 through 4 below build a standalone agent with `guard_agent(AgentConfig(...))`. That is only safe in a process with no adapter middleware enabling the agent through `SecurityConfig`: combined with Pattern 1 in the same process, `guard_agent()` returns a different singleton (`SyncGuardAgentHandler` from sync context vs. the middleware's `GuardAgentHandler`), and events sent through it never reach the dashboard.
 
 ```python
 from guard_agent import guard_agent, AgentConfig, SecurityEvent
@@ -538,8 +538,8 @@ Advanced techniques minimize bandwidth and latency:
 config = AgentConfig(api_key="your-api-key", buffer_size=100, flush_interval=10)
 
 # Standard API service (balanced profile)
-config = AgentConfig(api_key="your-api-key", buffer_size=1000, flush_interval=30)
+config = AgentConfig(api_key="your-api-key", buffer_size=100, flush_interval=30)
 
 # High-throughput gateway (optimized for volume)
-config = AgentConfig(api_key="your-api-key", buffer_size=10000, flush_interval=60)
+config = AgentConfig(api_key="your-api-key", buffer_size=100, flush_interval=5)
 ```

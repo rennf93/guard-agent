@@ -203,7 +203,7 @@ security_config = SecurityConfig(
     agent_api_key=api_key,
     agent_endpoint=core_url,
     agent_project_id=project_id,
-    agent_buffer_size=5000,
+    agent_buffer_size=100,
     agent_flush_interval=2,
     enable_dynamic_rules=bool(api_key),
     dynamic_rule_interval=60,
@@ -251,7 +251,7 @@ config = AgentConfig(
 agent = guard_agent(config)
 ```
 
-Do not do this in a process that also runs an adapter with `enable_agent=True` — `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the two are separate singletons and only the middleware's instance receives traffic. Configure `agent_*` fields on `SecurityConfig` instead.
+Do not do this in a process that also runs an adapter with `enable_agent=True`. `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the two are separate singletons and only the middleware's instance receives traffic. Configure `agent_*` fields on `SecurityConfig` instead.
 
 ### Configuration Parameters
 
