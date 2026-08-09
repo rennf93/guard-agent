@@ -57,6 +57,7 @@ The central orchestration component responsible for coordinating all telemetry o
 - **Task Coordination**: Manages asynchronous operations including buffer flushing and policy synchronization
 
 **Basic Usage (Auto-integrated with FastAPI Guard):**
+
 ```python
 from fastapi import FastAPI
 from guard import SecurityConfig, SecurityMiddleware
@@ -108,6 +109,7 @@ High-performance buffering subsystem engineered for optimal throughput and relia
 - **Concurrency Safety**: Full async/await compatibility with thread-safe operations
 
 **Usage Patterns:**
+
 ```python
 from guard_agent.buffer import EventBuffer
 from guard_agent.models import AgentConfig, SecurityEvent
@@ -139,6 +141,7 @@ Enterprise-grade network layer implementing industry best practices for reliable
 - **Comprehensive Telemetry**: Real-time transport statistics for operational visibility
 
 **Configuration:**
+
 ```python
 from guard_agent.transport import HTTPTransport
 from guard_agent.models import AgentConfig
@@ -273,7 +276,8 @@ class HTTPTransport:
 
 #### Core Data Models
 
-**AgentConfig**
+##### AgentConfig
+
 ```python
 class AgentConfig(BaseModel):
     api_key: str
@@ -295,16 +299,17 @@ class AgentConfig(BaseModel):
     # ... additional fields
 ```
 
-**Compression fields**
+##### Compression fields
 
 - `compression_enabled` (default `True`) — when set, the agent gzip-compresses every outgoing batch body whose JSON exceeds `compression_threshold` bytes and sends it with `Content-Encoding: gzip`. Smaller bodies skip compression. The Guard Core SaaS decompresses gzip request bodies via `GzipRequestMiddleware` before pydantic validation. Set `compression_enabled=False` only if your ingestion endpoint does not handle `Content-Encoding: gzip` request bodies.
 - `compression_threshold` (default `1024` bytes) — minimum body size in bytes before gzip kicks in. Tune lower for chatty deployments, higher to save CPU on small batches.
 
-**Retry-After**
+##### Retry-After
 
 429 responses raise `RateLimitedError(retry_after_seconds)`; the transport sleeps that exact value (capped at 300s) before retrying instead of falling back to client-side exponential backoff.
 
-**SecurityEvent**
+##### SecurityEvent
+
 ```python
 class SecurityEvent(BaseModel):
     timestamp: datetime
@@ -316,7 +321,8 @@ class SecurityEvent(BaseModel):
     # ... additional fields
 ```
 
-**SecurityMetric**
+##### SecurityMetric
+
 ```python
 class SecurityMetric(BaseModel):
     timestamp: datetime

@@ -225,11 +225,13 @@ async def sensitive_api():
 Comprehensive testing ensures proper agent operation:
 
 1. **Application Startup**:
+
    ```bash
    uvicorn main:app --reload --log-level info
    ```
 
 2. **Functional Verification**:
+
    ```bash
    # Baseline connectivity test
    curl http://localhost:8000/
@@ -245,7 +247,8 @@ Comprehensive testing ensures proper agent operation:
    ```
 
 3. **Log Analysis**: Verify proper initialization:
-   ```
+
+   ```text
    INFO:     FastAPI Guard security middleware initialized
    INFO:     Agent telemetry pipeline established
    INFO:     Dynamic rule synchronization active
@@ -264,6 +267,7 @@ Comprehensive testing ensures proper agent operation:
 ### Environment-Specific Configuration
 
 **Development Environment:**
+
 ```python
 # config_dev.py
 from guard import SecurityConfig
@@ -284,6 +288,7 @@ dev_config = SecurityConfig(
 ```
 
 **Production Environment:**
+
 ```python
 # config_prod.py
 from guard import SecurityConfig

@@ -36,10 +36,10 @@ pip uninstall fastapi-guard-agent && pip install guard-agent
 
 ## Links
 
-- **Product site:** https://guard-core.com
-- **Dashboard:** https://app.guard-core.com
-- **Playground:** https://playground.guard-core.com
-- **New package on PyPI:** https://pypi.org/project/guard-agent/
-- **Repository:** https://github.com/rennf93/guard-agent
-- **Documentation:** https://rennf93.github.io/guard-agent/
-- **CHANGELOG (v2.0.0 rename notes):** https://github.com/rennf93/guard-agent/blob/master/CHANGELOG.md
+- **Product site:** <https://guard-core.com>
+- **Dashboard:** <https://app.guard-core.com>
+- **Playground:** <https://playground.guard-core.com>
+- **New package on PyPI:** <https://pypi.org/project/guard-agent/>
+- **Repository:** <https://github.com/rennf93/guard-agent>
+- **Documentation:** <https://rennf93.github.io/guard-agent/>
+- **CHANGELOG (v2.0.0 rename notes):** <https://github.com/rennf93/guard-agent/blob/master/CHANGELOG.md>

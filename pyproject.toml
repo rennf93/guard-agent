@@ -158,6 +158,15 @@ follow_imports = "skip"
 module = "cryptography.*"
 follow_imports = "skip"
 
+[tool.pymarkdown.system]
+exclude_path = ".venv,.git,.github,tests,.claude,CLAUDE.md,.cursor,.kiro,ZZZ"
+
+[tool.pymarkdown.extensions.front-matter]
+enabled = true
+
+[tool.pymarkdown.plugins.md025]
+front_matter_title = "none"
+
 [tool.pymarkdown.plugins.md003]
 enabled = false
 

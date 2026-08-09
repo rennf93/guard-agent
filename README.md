@@ -138,15 +138,15 @@ All Python adapters share the same Guard Agent runtime and dashboard — a singl
 Key Features
 ------------
 
--   **Framework-Agnostic Core**: One agent, one dashboard — works with every Guard adapter (FastAPI, Flask, Django, Tornado) through a shared wire protocol.
--   **Automatic Integration**: Adapters wire the agent into their middleware automatically. Enable it through the adapter's `SecurityConfig` — no glue code required.
--   **High-Performance Architecture**: Built on asynchronous I/O principles to ensure zero performance impact on your application while maintaining real-time data collection capabilities.
--   **Enterprise-Grade Reliability**: Implements industry-standard resilience patterns including circuit breakers, exponential backoff with jitter, and intelligent retry mechanisms to guarantee data delivery.
--   **Intelligent Data Management**: Features multi-tier buffering with in-memory and optional Redis persistence, ensuring zero data loss during network interruptions or application restarts.
--   **Real-Time Security Updates**: Supports dynamic security policy updates from the centralized management platform, enabling immediate threat response without service interruption.
--   **Extensible Architecture**: Designed with protocol-based abstractions, allowing seamless integration with custom transport layers, storage backends, and monitoring systems.
--   **Comprehensive Security Intelligence**: Captures granular security events and performance metrics, providing actionable insights for security operations and compliance requirements.
--   **Instrumentation-Safe by Default**: Mutes pydantic plugin instrumentation (e.g. `logfire.instrument_pydantic()`) on its own telemetry models at import, so a host app doesn't get a validation span per security event without doing anything itself.
+- **Framework-Agnostic Core**: One agent, one dashboard — works with every Guard adapter (FastAPI, Flask, Django, Tornado) through a shared wire protocol.
+- **Automatic Integration**: Adapters wire the agent into their middleware automatically. Enable it through the adapter's `SecurityConfig` — no glue code required.
+- **High-Performance Architecture**: Built on asynchronous I/O principles to ensure zero performance impact on your application while maintaining real-time data collection capabilities.
+- **Enterprise-Grade Reliability**: Implements industry-standard resilience patterns including circuit breakers, exponential backoff with jitter, and intelligent retry mechanisms to guarantee data delivery.
+- **Intelligent Data Management**: Features multi-tier buffering with in-memory and optional Redis persistence, ensuring zero data loss during network interruptions or application restarts.
+- **Real-Time Security Updates**: Supports dynamic security policy updates from the centralized management platform, enabling immediate threat response without service interruption.
+- **Extensible Architecture**: Designed with protocol-based abstractions, allowing seamless integration with custom transport layers, storage backends, and monitoring systems.
+- **Comprehensive Security Intelligence**: Captures granular security events and performance metrics, providing actionable insights for security operations and compliance requirements.
+- **Instrumentation-Safe by Default**: Mutes pydantic plugin instrumentation (e.g. `logfire.instrument_pydantic()`) on its own telemetry models at import, so a host app doesn't get a validation span per security event without doing anything itself.
 
 ---
 
@@ -256,30 +256,30 @@ Do not do this in a process that also runs an adapter with `enable_agent=True` �
 ### Configuration Parameters
 
 #### Authentication & Identification
--   **`api_key: str`** (Required): Authentication key for the Guard management platform
--   **`project_id: str | None`**: Unique project identifier for data segregation and multi-tenancy support
+- **`api_key: str`** (Required): Authentication key for the Guard management platform
+- **`project_id: str | None`**: Unique project identifier for data segregation and multi-tenancy support
 
 #### Network Configuration
--   **`endpoint: str`**: Management platform API endpoint (Default: `https://api.guard-core.com`)
--   **`timeout: int`**: HTTP request timeout in seconds (Default: `30`)
--   **`retry_attempts: int`**: Maximum retry attempts for failed requests (Default: `3`)
--   **`backoff_factor: float`**: Exponential backoff multiplier for retry delays (Default: `1.0`)
+- **`endpoint: str`**: Management platform API endpoint (Default: `https://api.guard-core.com`)
+- **`timeout: int`**: HTTP request timeout in seconds (Default: `30`)
+- **`retry_attempts: int`**: Maximum retry attempts for failed requests (Default: `3`)
+- **`backoff_factor: float`**: Exponential backoff multiplier for retry delays (Default: `1.0`)
 
 #### Data Management
--   **`buffer_size: int`**: Maximum events in memory buffer before automatic flush (Default: `100`)
--   **`flush_interval: int`**: Automatic buffer flush interval in seconds (Default: `30`)
--   **`max_payload_size: int`**: Maximum payload size in bytes before truncation (Default: `1024`)
--   **`buffer_overflow_policy: Literal["drop", "block", "raise"]`**: Behavior when the in-memory buffer is full (Default: `"drop"`)
-    -   `"drop"`: silently evict the oldest entry; production-safe for high-throughput, loses events when the SaaS endpoint is unreachable
-    -   `"block"`: backpressure the caller until a flush frees space; appropriate when event integrity matters more than request latency
-    -   `"raise"`: throw `BufferFullError` so callers can react; appropriate in tests or strict environments
+- **`buffer_size: int`**: Maximum events in memory buffer before automatic flush (Default: `100`)
+- **`flush_interval: int`**: Automatic buffer flush interval in seconds (Default: `30`)
+- **`max_payload_size: int`**: Maximum payload size in bytes before truncation (Default: `1024`)
+- **`buffer_overflow_policy: Literal["drop", "block", "raise"]`**: Behavior when the in-memory buffer is full (Default: `"drop"`)
+  - `"drop"`: silently evict the oldest entry; production-safe for high-throughput, loses events when the SaaS endpoint is unreachable
+  - `"block"`: backpressure the caller until a flush frees space; appropriate when event integrity matters more than request latency
+  - `"raise"`: throw `BufferFullError` so callers can react; appropriate in tests or strict environments
 
 #### Feature Control
--   **`enable_metrics: bool`**: Enable performance metrics collection (Default: `True`)
--   **`enable_events: bool`**: Enable security event collection (Default: `True`)
+- **`enable_metrics: bool`**: Enable performance metrics collection (Default: `True`)
+- **`enable_events: bool`**: Enable security event collection (Default: `True`)
 
 #### Security & Privacy
--   **`sensitive_headers: list[str]`**: HTTP headers to redact from collected data (Default: `["authorization", "cookie", "x-api-key"]`)
+- **`sensitive_headers: list[str]`**: HTTP headers to redact from collected data (Default: `["authorization", "cookie", "x-api-key"]`)
 
 ---
 

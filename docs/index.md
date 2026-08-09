@@ -118,24 +118,24 @@ ___
 ## Core Capabilities
 
 ### Security Intelligence
--   **Automated Event Collection**: Captures comprehensive security events including authentication failures, authorization violations, rate limit breaches, and suspicious request patterns without manual instrumentation
--   **Real-Time Threat Detection**: Provides immediate visibility into security incidents with sub-second event propagation to the management platform
--   **Behavioral Analytics**: Tracks request patterns and user behavior to identify anomalies and potential security threats
+- **Automated Event Collection**: Captures comprehensive security events including authentication failures, authorization violations, rate limit breaches, and suspicious request patterns without manual instrumentation
+- **Real-Time Threat Detection**: Provides immediate visibility into security incidents with sub-second event propagation to the management platform
+- **Behavioral Analytics**: Tracks request patterns and user behavior to identify anomalies and potential security threats
 
 ### Enterprise Architecture
--   **Zero-Impact Performance**: Leverages asynchronous I/O and intelligent buffering to ensure telemetry collection adds negligible overhead to application performance
--   **Fault-Tolerant Design**: Implements circuit breakers, exponential backoff, and intelligent retry mechanisms to maintain operation during network disruptions
--   **Multi-Tier Buffering**: Combines in-memory and persistent Redis buffering to guarantee zero data loss during outages or maintenance windows
+- **Zero-Impact Performance**: Leverages asynchronous I/O and intelligent buffering to ensure telemetry collection adds negligible overhead to application performance
+- **Fault-Tolerant Design**: Implements circuit breakers, exponential backoff, and intelligent retry mechanisms to maintain operation during network disruptions
+- **Multi-Tier Buffering**: Combines in-memory and persistent Redis buffering to guarantee zero data loss during outages or maintenance windows
 
 ### Operational Excellence
--   **Dynamic Policy Management**: Supports real-time security policy updates without application restart, enabling immediate threat response
--   **Protocol-Based Extensibility**: Provides clean abstractions for custom transport implementations, storage backends, and data processors
--   **Comprehensive Observability**: Captures granular metrics including response times, error rates, and resource utilization for complete operational visibility
+- **Dynamic Policy Management**: Supports real-time security policy updates without application restart, enabling immediate threat response
+- **Protocol-Based Extensibility**: Provides clean abstractions for custom transport implementations, storage backends, and data processors
+- **Comprehensive Observability**: Captures granular metrics including response times, error rates, and resource utilization for complete operational visibility
 
 ### Data Governance
--   **Privacy-First Design**: Implements configurable data redaction for sensitive headers and payload truncation to meet compliance requirements
--   **Intelligent Rate Limiting**: Prevents API exhaustion through client-side rate limiting with adaptive backpressure
--   **Health Monitoring**: Continuous self-diagnostics with automatic health reporting and degradation detection
+- **Privacy-First Design**: Implements configurable data redaction for sensitive headers and payload truncation to meet compliance requirements
+- **Intelligent Rate Limiting**: Prevents API exhaustion through client-side rate limiting with adaptive backpressure
+- **Health Monitoring**: Continuous self-diagnostics with automatic health reporting and degradation detection
 
 ___
 
