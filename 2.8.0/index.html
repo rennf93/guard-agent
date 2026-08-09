@@ -795,6 +795,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#logfire-pydantic-plugin-instrumentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logfire / Pydantic Plugin Instrumentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#documentation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1563,6 +1574,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#logfire-pydantic-plugin-instrumentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logfire / Pydantic Plugin Instrumentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#documentation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1797,6 +1819,7 @@
 </span></code></pre></div>
 <hr />
 <h2 id="advanced-configuration">Advanced Configuration<a class="headerlink" href="#advanced-configuration" title="Permanent link">&para;</a></h2>
+<p>These examples continue the standalone, direct-construction usage from <a href="#advanced-usage-pattern">Advanced Usage Pattern</a> above and carry the same caveat: only in a process with no adapter middleware enabling the agent through <code>SecurityConfig</code>.</p>
 <h3 id="redis-integration">Redis Integration<a class="headerlink" href="#redis-integration" title="Permanent link">&para;</a></h3>
 <p>For production deployments, enable Redis for persistent buffering:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard_agent.protocols</span><span class="w"> </span><span class="kn">import</span> <span class="n">RedisHandlerProtocol</span>
@@ -1936,6 +1959,9 @@
 </span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>            <span class="c1"># Request timeout</span>
 </span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="p">)</span>
 </span></code></pre></div>
+<hr />
+<h2 id="logfire-pydantic-plugin-instrumentation">Logfire / Pydantic Plugin Instrumentation<a class="headerlink" href="#logfire-pydantic-plugin-instrumentation" title="Permanent link">&para;</a></h2>
+<p><code>SecurityEvent</code> and <code>SecurityMetric</code> are validated on every request, and <code>EventBatch</code> re-validates every buffered event on each flush, enough volume that a host app calling <code>logfire.instrument_pydantic()</code> would otherwise get a validation span per security event. <code>guard_agent</code>'s <code>__init__</code> mutes this automatically: at import time it sets <code>model_config["plugin_settings"]["logfire"] = {"record": "off"}</code> on <code>SecurityEvent</code>, <code>SecurityMetric</code>, and <code>EventBatch</code>, then force-rebuilds each model so the setting takes effect. This runs whether or not <code>logfire</code> is installed, is idempotent (guard-core applies the identical mute to the same models at its own import), and requires no configuration on a normal import. It is not unconditional: the whole thing runs once at import with no retry, so any failure is permanent for the life of the process, and there are two distinct failure paths. If <code>guard_agent.models</code> itself fails to import, <code>_mute_pydantic_plugin_instrumentation</code> returns silently with nothing logged. Otherwise, <code>SecurityEvent</code>, <code>SecurityMetric</code>, and <code>EventBatch</code> are muted in one loop under a single shared <code>try</code>/<code>except</code>, so a <code>model_rebuild</code> failure on one model stops the loop before the remaining models are muted, though that case does log one warning naming the failure, not which models were left unmuted.</p>
 <hr />
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <ul>

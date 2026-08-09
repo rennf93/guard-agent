@@ -1077,6 +1077,67 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Core Data Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agentconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AgentConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compression-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retry-after" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retry-After
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#securityevent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecurityEvent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#securitymetric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecurityMetric
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1519,6 +1580,67 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Core Data Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agentconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AgentConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compression-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retry-after" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retry-After
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#securityevent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecurityEvent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#securitymetric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecurityMetric
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1760,7 +1882,7 @@
 - <strong>Event Processing</strong>: Implements high-throughput event ingestion with backpressure handling
 - <strong>Metric Aggregation</strong>: Performs efficient metric collection with configurable sampling rates
 - <strong>Task Coordination</strong>: Manages asynchronous operations including buffer flushing and policy synchronization</p>
-<p><strong>Basic Usage (Auto-integrated with FastAPI Guard):</strong>
+<p><strong>Basic Usage (Auto-integrated with FastAPI Guard):</strong></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecurityConfig</span><span class="p">,</span> <span class="n">SecurityMiddleware</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
@@ -1773,10 +1895,11 @@
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">)</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">()</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">middleware</span> <span class="o">=</span> <span class="n">SecurityMiddleware</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">app</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">SecurityMiddleware</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># Agent starts automatically with middleware</span>
-</span></code></pre></div></p>
-<p><strong>Direct Usage (Advanced):</strong>
+</span></code></pre></div>
+<p><strong>Direct Usage (Advanced):</strong></p>
+<p>Only for a process with no framework adapter (fastapi-guard, flaskapi-guard, djapi-guard, tornadoapi-guard) enabling the agent through <code>SecurityConfig</code>. Doing this alongside an adapter with <code>enable_agent=True</code> builds a second singleton that never receives traffic. <code>guard_agent()</code> dispatches to <code>SyncGuardAgentHandler</code> from sync module-load context but to <code>GuardAgentHandler</code> from the middleware's async init, so the events you send here don't reach the dashboard.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard_agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">guard_agent</span><span class="p">,</span> <span class="n">AgentConfig</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Initialize directly</span>
@@ -1793,7 +1916,7 @@
 </span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># Send data manually</span>
 </span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">send_event</span><span class="p">(</span><span class="n">security_event</span><span class="p">)</span>
 </span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">send_metric</span><span class="p">(</span><span class="n">performance_metric</span><span class="p">)</span>
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h3 id="2-event-buffer-eventbuffer">2. Event Buffer (<code>EventBuffer</code>)<a class="headerlink" href="#2-event-buffer-eventbuffer" title="Permanent link">&para;</a></h3>
 <p>High-performance buffering subsystem engineered for optimal throughput and reliability.</p>
 <p><strong>Technical Capabilities:</strong>
@@ -1801,7 +1924,7 @@
 - <strong>Persistent Buffering</strong>: Optional Redis integration for durability across restarts
 - <strong>Intelligent Flushing</strong>: Adaptive algorithms balance latency and efficiency
 - <strong>Concurrency Safety</strong>: Full async/await compatibility with thread-safe operations</p>
-<p><strong>Usage Patterns:</strong>
+<p><strong>Usage Patterns:</strong></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard_agent.buffer</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventBuffer</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard_agent.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentConfig</span><span class="p">,</span> <span class="n">SecurityEvent</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
@@ -1819,7 +1942,7 @@
 </span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="c1"># Manual flush</span>
 </span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">events</span> <span class="o">=</span> <span class="k">await</span> <span class="n">buffer</span><span class="o">.</span><span class="n">flush_events</span><span class="p">()</span>
 </span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="n">metrics</span> <span class="o">=</span> <span class="k">await</span> <span class="n">buffer</span><span class="o">.</span><span class="n">flush_metrics</span><span class="p">()</span>
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h3 id="3-http-transport-httptransport">3. HTTP Transport (<code>HTTPTransport</code>)<a class="headerlink" href="#3-http-transport-httptransport" title="Permanent link">&para;</a></h3>
 <p>Enterprise-grade network layer implementing industry best practices for reliable data delivery.</p>
 <p><strong>Reliability Features:</strong>
@@ -1827,7 +1950,7 @@
 - <strong>Circuit Breaker</strong>: Automatic failure detection with graceful degradation
 - <strong>Fixed Rate Limiting</strong>: Client-side sliding window (100 req/60s); server <code>429 Retry-After</code> is honored separately
 - <strong>Comprehensive Telemetry</strong>: Real-time transport statistics for operational visibility</p>
-<p><strong>Configuration:</strong>
+<p><strong>Configuration:</strong></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard_agent.transport</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPTransport</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard_agent.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentConfig</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
@@ -1840,7 +1963,7 @@
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">backoff_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
 </span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="p">)</span>
 </span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">transport</span> <span class="o">=</span> <span class="n">HTTPTransport</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h3 id="4-data-models">4. Data Models<a class="headerlink" href="#4-data-models" title="Permanent link">&para;</a></h3>
 <p>Strongly-typed data structures leveraging Pydantic for validation and serialization.</p>
 <p><strong>Primary Models:</strong>
@@ -1963,7 +2086,7 @@
 </span></code></pre></div>
 <h3 id="models-api">Models API<a class="headerlink" href="#models-api" title="Permanent link">&para;</a></h3>
 <h4 id="core-data-models">Core Data Models<a class="headerlink" href="#core-data-models" title="Permanent link">&para;</a></h4>
-<p><strong>AgentConfig</strong>
+<h5 id="agentconfig">AgentConfig<a class="headerlink" href="#agentconfig" title="Permanent link">&para;</a></h5>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">AgentConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">endpoint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;https://api.guard-core.com&quot;</span>
@@ -1982,15 +2105,15 @@
 </span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>
 </span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>    <span class="n">project_encryption_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>    <span class="c1"># ... additional fields</span>
-</span></code></pre></div></p>
-<p><strong>Compression fields</strong></p>
+</span></code></pre></div>
+<h5 id="compression-fields">Compression fields<a class="headerlink" href="#compression-fields" title="Permanent link">&para;</a></h5>
 <ul>
 <li><code>compression_enabled</code> (default <code>True</code>) — when set, the agent gzip-compresses every outgoing batch body whose JSON exceeds <code>compression_threshold</code> bytes and sends it with <code>Content-Encoding: gzip</code>. Smaller bodies skip compression. The Guard Core SaaS decompresses gzip request bodies via <code>GzipRequestMiddleware</code> before pydantic validation. Set <code>compression_enabled=False</code> only if your ingestion endpoint does not handle <code>Content-Encoding: gzip</code> request bodies.</li>
 <li><code>compression_threshold</code> (default <code>1024</code> bytes) — minimum body size in bytes before gzip kicks in. Tune lower for chatty deployments, higher to save CPU on small batches.</li>
 </ul>
-<p><strong>Retry-After</strong></p>
+<h5 id="retry-after">Retry-After<a class="headerlink" href="#retry-after" title="Permanent link">&para;</a></h5>
 <p>429 responses raise <code>RateLimitedError(retry_after_seconds)</code>; the transport sleeps that exact value (capped at 300s) before retrying instead of falling back to client-side exponential backoff.</p>
-<p><strong>SecurityEvent</strong>
+<h5 id="securityevent">SecurityEvent<a class="headerlink" href="#securityevent" title="Permanent link">&para;</a></h5>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">SecurityEvent</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span>
@@ -1999,8 +2122,8 @@
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="c1"># ... additional fields</span>
-</span></code></pre></div></p>
-<p><strong>SecurityMetric</strong>
+</span></code></pre></div>
+<h5 id="securitymetric">SecurityMetric<a class="headerlink" href="#securitymetric" title="Permanent link">&para;</a></h5>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">SecurityMetric</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">metric_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
@@ -2016,7 +2139,7 @@
 </span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="n">endpoint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>    <span class="n">tags</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
 </span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>    <span class="c1"># ... additional fields</span>
-</span></code></pre></div></p>
+</span></code></pre></div>
 <h2 id="implementation-patterns">Implementation Patterns<a class="headerlink" href="#implementation-patterns" title="Permanent link">&para;</a></h2>
 <h3 id="pattern-1-standard-deployment">Pattern 1: Standard Deployment<a class="headerlink" href="#pattern-1-standard-deployment" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
@@ -2038,9 +2161,10 @@
 </span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="p">)</span>
 </span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>
 </span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="c1"># Add middleware - agent starts automatically</span>
-</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="n">middleware</span> <span class="o">=</span> <span class="n">SecurityMiddleware</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="n">app</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">SecurityMiddleware</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="pattern-2-custom-event-integration">Pattern 2: Custom Event Integration<a class="headerlink" href="#pattern-2-custom-event-integration" title="Permanent link">&para;</a></h3>
+<p>Patterns 2 through 4 below build a standalone agent with <code>guard_agent(AgentConfig(...))</code>. That is only safe in a process with no adapter middleware enabling the agent through <code>SecurityConfig</code>: combined with Pattern 1 in the same process, <code>guard_agent()</code> returns a different singleton (<code>SyncGuardAgentHandler</code> from sync context vs. the middleware's <code>GuardAgentHandler</code>), and events sent through it never reach the dashboard.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard_agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">guard_agent</span><span class="p">,</span> <span class="n">AgentConfig</span><span class="p">,</span> <span class="n">SecurityEvent</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">guard_agent.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_timestamp</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
@@ -2181,10 +2305,10 @@
 </span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">config</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">flush_interval</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 </span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
 </span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># Standard API service (balanced profile)</span>
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="n">config</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">flush_interval</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="n">config</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">flush_interval</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
 </span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
 </span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="c1"># High-throughput gateway (optimized for volume)</span>
-</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="n">config</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">flush_interval</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="n">config</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">flush_interval</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 </span></code></pre></div>
 
 

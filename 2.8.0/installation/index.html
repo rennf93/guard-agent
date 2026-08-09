@@ -1696,13 +1696,11 @@
 </ul>
 <h4 id="optional-components">Optional Components<a class="headerlink" href="#optional-components" title="Permanent link">&para;</a></h4>
 <ul>
-<li>A Guard adapter for your framework (install alongside the agent):<ul>
+<li>A Guard adapter for your framework (install alongside the agent):</li>
 <li><strong><code>fastapi-guard</code></strong> for FastAPI</li>
 <li><strong><code>flaskapi-guard</code></strong> for Flask</li>
 <li><strong><code>djapi-guard</code></strong> for Django</li>
 <li><strong><code>tornadoapi-guard</code></strong> for Tornado <em>(coming soon — not yet published on PyPI)</em></li>
-</ul>
-</li>
 <li><strong><code>redis</code></strong> ≥ 6.0.0 - Client library for persistent buffering (production recommended)</li>
 <li><strong>Redis Server</strong> 6.0+ - External service for high-availability deployments</li>
 <li><strong>ASGI/WSGI Server</strong> - Uvicorn, Hypercorn, Gunicorn, or similar for application hosting</li>
@@ -1728,7 +1726,7 @@
 </span></code></pre></div>
 <h3 id="version-specific-installation">Version-Specific Installation<a class="headerlink" href="#version-specific-installation" title="Permanent link">&para;</a></h3>
 <p>Pin to a specific version for reproducible deployments:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>add<span class="w"> </span><span class="s2">&quot;guard-agent==2.6.0&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>add<span class="w"> </span><span class="s2">&quot;guard-agent==2.8.0&quot;</span>
 </span></code></pre></div>
 <h3 id="alternative-package-managers">Alternative Package Managers<a class="headerlink" href="#alternative-package-managers" title="Permanent link">&para;</a></h3>
 <h4 id="poetry">Poetry<a class="headerlink" href="#poetry" title="Permanent link">&para;</a></h4>
@@ -1742,7 +1740,7 @@
 </span></code></pre></div>
 <h4 id="pip-tools-workflow">pip-tools Workflow<a class="headerlink" href="#pip-tools-workflow" title="Permanent link">&para;</a></h4>
 <p>Define in <code>requirements.in</code>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>guard-agent==2.6.0
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>guard-agent==2.8.0
 </span></code></pre></div>
 <p>Generate locked requirements:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pip-compile<span class="w"> </span>requirements.in
@@ -1823,7 +1821,7 @@
 </span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>        <span class="n">agent_api_key</span><span class="o">=</span><span class="s2">&quot;test-key&quot;</span><span class="p">,</span>
 </span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>        <span class="n">agent_project_id</span><span class="o">=</span><span class="s2">&quot;test-project&quot;</span>
 </span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>    <span class="p">)</span>
-</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>    <span class="n">middleware</span> <span class="o">=</span> <span class="n">SecurityMiddleware</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>    <span class="n">app</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">SecurityMiddleware</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 </span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;✅ Security middleware with telemetry pipeline successfully configured&quot;</span><span class="p">)</span>
 </span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
 </span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Configuration validation failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1869,7 +1867,7 @@
 </span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a><span class="p">)</span>
 </span><span id="__span-16-19"><a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a>
 </span><span id="__span-16-20"><a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a><span class="c1"># Add middleware - agent starts automatically</span>
-</span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a><span class="n">middleware</span> <span class="o">=</span> <span class="n">SecurityMiddleware</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a><span class="n">app</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">SecurityMiddleware</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 </span><span id="__span-16-22"><a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a>
 </span><span id="__span-16-23"><a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a><span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
 </span><span id="__span-16-24"><a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">root</span><span class="p">():</span>
@@ -1884,43 +1882,47 @@
 <h2 id="troubleshooting-guide">Troubleshooting Guide<a class="headerlink" href="#troubleshooting-guide" title="Permanent link">&para;</a></h2>
 <h3 id="module-import-failures">Module Import Failures<a class="headerlink" href="#module-import-failures" title="Permanent link">&para;</a></h3>
 <p><strong>Symptom</strong>: <code>ModuleNotFoundError: No module named 'guard_agent'</code></p>
-<p><strong>Resolution Strategies</strong>:
-1. Ensure you're using the correct Python environment:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>which<span class="w"> </span>python
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>pip<span class="w"> </span>list<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>guard-agent
-</span></code></pre></div></p>
+<p><strong>Resolution Strategies</strong>:</p>
 <ol>
 <li>
-<p>If using virtual environments, make sure it's activated:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w">  </span><span class="c1"># Linux/Mac</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="c1"># or</span>
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>venv<span class="se">\S</span>cripts<span class="se">\a</span>ctivate<span class="w">     </span><span class="c1"># Windows</span>
-</span></code></pre></div></p>
+<p>Ensure you're using the correct Python environment:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>which<span class="w"> </span>python
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>pip<span class="w"> </span>list<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>guard-agent
+</span></code></pre></div>
 </li>
 <li>
-<p>Reinstall the package:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>uv<span class="w"> </span>remove<span class="w"> </span>guard-agent<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>uv<span class="w"> </span>add<span class="w"> </span>guard-agent
+<p>If using virtual environments, make sure it's activated:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w">  </span><span class="c1"># Linux/Mac</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="c1"># or</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>venv<span class="se">\S</span>cripts<span class="se">\a</span>ctivate<span class="w">     </span><span class="c1"># Windows</span>
+</span></code></pre></div>
+</li>
+<li>
+<p>Reinstall the package:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>uv<span class="w"> </span>remove<span class="w"> </span>guard-agent<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>uv<span class="w"> </span>add<span class="w"> </span>guard-agent
 </span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="c1"># or with pip:</span>
 </span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="c1"># pip uninstall guard-agent &amp;&amp; pip install guard-agent</span>
-</span></code></pre></div></p>
+</span></code></pre></div>
 </li>
 </ol>
 <h3 id="redis-connectivity-issues">Redis Connectivity Issues<a class="headerlink" href="#redis-connectivity-issues" title="Permanent link">&para;</a></h3>
 <p><strong>Symptom</strong>: <code>ConnectionError: Error connecting to Redis</code></p>
-<p><strong>Resolution Strategies</strong>:
-1. Ensure Redis server is running:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>redis-cli<span class="w"> </span>ping
-</span></code></pre></div></p>
+<p><strong>Resolution Strategies</strong>:</p>
 <ol>
 <li>
-<p>Check Redis configuration in your agent config:
-   <div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Make sure Redis URL is correct</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">redis</span> <span class="o">=</span> <span class="n">Redis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="s2">&quot;redis://localhost:6379/0&quot;</span><span class="p">)</span>
-</span></code></pre></div></p>
+<p>Ensure Redis server is running:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>redis-cli<span class="w"> </span>ping
+</span></code></pre></div>
 </li>
 <li>
-<p>Install Redis server if not installed:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># Ubuntu/Debian</span>
+<p>Check Redis configuration in your agent config:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Make sure Redis URL is correct</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">redis</span> <span class="o">=</span> <span class="n">Redis</span><span class="o">.</span><span class="n">from_url</span><span class="p">(</span><span class="s2">&quot;redis://localhost:6379/0&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+</li>
+<li>
+<p>Install Redis server if not installed:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># Ubuntu/Debian</span>
 </span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>redis-server
 </span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
 </span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="c1"># macOS with Homebrew</span>
@@ -1928,23 +1930,25 @@
 </span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>
 </span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="c1"># Start Redis</span>
 </span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>redis-server
-</span></code></pre></div></p>
+</span></code></pre></div>
 </li>
 </ol>
 <h3 id="network-transport-failures">Network Transport Failures<a class="headerlink" href="#network-transport-failures" title="Permanent link">&para;</a></h3>
 <p><strong>Symptom</strong>: <code>httpx.HTTPError</code> or connection timeout exceptions</p>
-<p><strong>Resolution Strategies</strong>:
-1. Check your API endpoint configuration:
-   <div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="p">(</span>
+<p><strong>Resolution Strategies</strong>:</p>
+<ol>
+<li>
+<p>Check your API endpoint configuration:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="p">(</span>
 </span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    <span class="n">endpoint</span><span class="o">=</span><span class="s2">&quot;https://api.guard-core.com&quot;</span><span class="p">,</span>  <span class="c1"># Ensure this is correct</span>
 </span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span>
 </span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="p">)</span>
-</span></code></pre></div></p>
-<ol>
+</span></code></pre></div>
+</li>
 <li>
-<p>Verify network connectivity:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>curl<span class="w"> </span>-I<span class="w"> </span>https://api.guard-core.com/health
-</span></code></pre></div></p>
+<p>Verify network connectivity:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>curl<span class="w"> </span>-I<span class="w"> </span>https://api.guard-core.com/health
+</span></code></pre></div>
 </li>
 <li>
 <p>Check firewall settings and proxy configuration if behind corporate network.</p>
@@ -1952,22 +1956,24 @@
 </ol>
 <h3 id="installation-permission-errors">Installation Permission Errors<a class="headerlink" href="#installation-permission-errors" title="Permanent link">&para;</a></h3>
 <p><strong>Symptom</strong>: <code>PermissionError</code> during package installation</p>
-<p><strong>Resolution Strategies</strong>:
-1. Use a project-local virtual environment (recommended — this is what <code>uv</code> does by default):
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>uv<span class="w"> </span>sync
-</span></code></pre></div></p>
+<p><strong>Resolution Strategies</strong>:</p>
 <ol>
 <li>
-<p>With pip, use a manual venv:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>pip<span class="w"> </span>install<span class="w"> </span>guard-agent
-</span></code></pre></div></p>
+<p>Use a project-local virtual environment (recommended — this is what <code>uv</code> does by default):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>uv<span class="w"> </span>sync
+</span></code></pre></div>
 </li>
 <li>
-<p>With pip, user-scoped install as a last resort:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>pip<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>guard-agent
-</span></code></pre></div></p>
+<p>With pip, use a manual venv:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>pip<span class="w"> </span>install<span class="w"> </span>guard-agent
+</span></code></pre></div>
+</li>
+<li>
+<p>With pip, user-scoped install as a last resort:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>pip<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>guard-agent
+</span></code></pre></div>
 </li>
 </ol>
 <h2 id="post-installation-guidance">Post-Installation Guidance<a class="headerlink" href="#post-installation-guidance" title="Permanent link">&para;</a></h2>
