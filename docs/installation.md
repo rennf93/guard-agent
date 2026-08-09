@@ -29,10 +29,10 @@ The following dependencies are automatically managed during installation:
 
 #### Optional Components
 - A Guard adapter for your framework (install alongside the agent):
-    - **`fastapi-guard`** for FastAPI
-    - **`flaskapi-guard`** for Flask
-    - **`djapi-guard`** for Django
-    - **`tornadoapi-guard`** for Tornado *(coming soon — not yet published on PyPI)*
+  - **`fastapi-guard`** for FastAPI
+  - **`flaskapi-guard`** for Flask
+  - **`djapi-guard`** for Django
+  - **`tornadoapi-guard`** for Tornado *(coming soon — not yet published on PyPI)*
 - **`redis`** ≥ 6.0.0 - Client library for persistent buffering (production recommended)
 - **Redis Server** 6.0+ - External service for high-availability deployments
 - **ASGI/WSGI Server** - Uvicorn, Hypercorn, Gunicorn, or similar for application hosting
@@ -68,7 +68,7 @@ uv add guard-agent
 Pin to a specific version for reproducible deployments:
 
 ```bash
-uv add "guard-agent==2.6.0"
+uv add "guard-agent==2.8.0"
 ```
 
 ### Alternative Package Managers
@@ -96,7 +96,7 @@ pip install guard-agent
 Define in `requirements.in`:
 
 ```text
-guard-agent==2.6.0
+guard-agent==2.8.0
 ```
 
 Generate locked requirements:
@@ -205,7 +205,7 @@ try:
         agent_api_key="test-key",
         agent_project_id="test-project"
     )
-    middleware = SecurityMiddleware(app, config=config)
+    app.add_middleware(SecurityMiddleware, config=config)
     print("✅ Security middleware with telemetry pipeline successfully configured")
 except Exception as e:
     print(f"❌ Configuration validation failed: {e}")
@@ -259,7 +259,7 @@ config = SecurityConfig(
 )
 
 # Add middleware - agent starts automatically
-middleware = SecurityMiddleware(app, config=config)
+app.add_middleware(SecurityMiddleware, config=config)
 
 @app.get("/")
 async def root():
@@ -279,71 +279,82 @@ async def test():
 **Symptom**: `ModuleNotFoundError: No module named 'guard_agent'`
 
 **Resolution Strategies**:
+
 1. Ensure you're using the correct Python environment:
-   ```bash
-   which python
-   pip list | grep guard-agent
-   ```
+
+    ```bash
+    which python
+    pip list | grep guard-agent
+    ```
 
 2. If using virtual environments, make sure it's activated:
-   ```bash
-   source venv/bin/activate  # Linux/Mac
-   # or
-   venv\Scripts\activate     # Windows
-   ```
+
+    ```bash
+    source venv/bin/activate  # Linux/Mac
+    # or
+    venv\Scripts\activate     # Windows
+    ```
 
 3. Reinstall the package:
-   ```bash
-   uv remove guard-agent && uv add guard-agent
-   # or with pip:
-   # pip uninstall guard-agent && pip install guard-agent
-   ```
+
+    ```bash
+    uv remove guard-agent && uv add guard-agent
+    # or with pip:
+    # pip uninstall guard-agent && pip install guard-agent
+    ```
 
 ### Redis Connectivity Issues
 
 **Symptom**: `ConnectionError: Error connecting to Redis`
 
 **Resolution Strategies**:
+
 1. Ensure Redis server is running:
-   ```bash
-   redis-cli ping
-   ```
+
+    ```bash
+    redis-cli ping
+    ```
 
 2. Check Redis configuration in your agent config:
-   ```python
-   # Make sure Redis URL is correct
-   redis = Redis.from_url("redis://localhost:6379/0")
-   ```
+
+    ```python
+    # Make sure Redis URL is correct
+    redis = Redis.from_url("redis://localhost:6379/0")
+    ```
 
 3. Install Redis server if not installed:
-   ```bash
-   # Ubuntu/Debian
-   sudo apt-get install redis-server
 
-   # macOS with Homebrew
-   brew install redis
+    ```bash
+    # Ubuntu/Debian
+    sudo apt-get install redis-server
 
-   # Start Redis
-   redis-server
-   ```
+    # macOS with Homebrew
+    brew install redis
+
+    # Start Redis
+    redis-server
+    ```
 
 ### Network Transport Failures
 
 **Symptom**: `httpx.HTTPError` or connection timeout exceptions
 
 **Resolution Strategies**:
+
 1. Check your API endpoint configuration:
-   ```python
-   config = AgentConfig(
-       endpoint="https://api.guard-core.com",  # Ensure this is correct
-       api_key="your-api-key"
-   )
-   ```
+
+    ```python
+    config = AgentConfig(
+        endpoint="https://api.guard-core.com",  # Ensure this is correct
+        api_key="your-api-key"
+    )
+    ```
 
 2. Verify network connectivity:
-   ```bash
-   curl -I https://api.guard-core.com/health
-   ```
+
+    ```bash
+    curl -I https://api.guard-core.com/health
+    ```
 
 3. Check firewall settings and proxy configuration if behind corporate network.
 
@@ -352,22 +363,26 @@ async def test():
 **Symptom**: `PermissionError` during package installation
 
 **Resolution Strategies**:
+
 1. Use a project-local virtual environment (recommended — this is what `uv` does by default):
-   ```bash
-   uv sync
-   ```
+
+    ```bash
+    uv sync
+    ```
 
 2. With pip, use a manual venv:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install guard-agent
-   ```
+
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate
+    pip install guard-agent
+    ```
 
 3. With pip, user-scoped install as a last resort:
-   ```bash
-   pip install --user guard-agent
-   ```
+
+    ```bash
+    pip install --user guard-agent
+    ```
 
 ## Post-Installation Guidance
 

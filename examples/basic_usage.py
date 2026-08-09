@@ -11,12 +11,11 @@ documentation — Guard Agent itself is framework-agnostic.
 """
 
 import asyncio
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from guard import SecurityConfig, SecurityDecorator, SecurityMiddleware
+from guard.lifespan import guard_lifespan
 
 from guard_agent import (
     AgentConfig,
@@ -99,9 +98,14 @@ async def basic_agent_usage() -> None:
 def create_fastapi_app_with_agent() -> FastAPI:
     """Example of integrating Guard Agent with the FastAPI adapter (RECOMMENDED).
 
-    Uses the canonical pattern from ``guard-core-app/examples/app.py``:
-    explicit ``AgentConfig`` + ``guard_agent()`` + FastAPI ``lifespan`` context
-    manager to drive ``agent.start()`` / ``agent.stop()`` on the event loop.
+    The agent is enabled entirely through SecurityConfig's ``agent_*`` fields;
+    ``SecurityMiddleware`` constructs and owns the agent singleton, and
+    ``guard.lifespan.guard_lifespan`` drives boot-time initialization on the
+    app's event loop. This matches the canonical pattern in
+    ``guard-core-app/examples/app.py``. Do **not** build an ``AgentConfig``,
+    call ``guard_agent()``/``GuardAgentHandler()``, or wire your own
+    ``lifespan`` here: that constructs a second agent that never receives
+    traffic and leaves the dashboard empty.
     """
     print("\n=== fastapi-guard + Guard Agent Integration (Recommended) ===")
 
@@ -122,7 +126,6 @@ def create_fastapi_app_with_agent() -> FastAPI:
         agent_api_key=api_key,
         agent_project_id=project_id,
         agent_endpoint=endpoint,
-        # Agent buffer tuning (mirrored on the explicit AgentConfig below)
         agent_buffer_size=50,
         agent_flush_interval=30,
         agent_enable_events=True,
@@ -132,26 +135,7 @@ def create_fastapi_app_with_agent() -> FastAPI:
         dynamic_rule_interval=300,
     )
 
-    # Explicit AgentConfig — the guard_agent() factory is a singleton, so
-    # this produces the same handler the middleware uses internally.
-    # Creating it here gives us a reference for lifespan management.
-    agent_config = AgentConfig(
-        api_key=api_key,
-        endpoint=endpoint,
-        project_id=project_id,
-        buffer_size=50,
-        flush_interval=30,
-    )
-    agent = GuardAgentHandler(agent_config)
-
-    @asynccontextmanager
-    async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-        """Drive the agent lifecycle on the FastAPI event loop."""
-        await agent.start()
-        yield
-        await agent.stop()
-
-    app = FastAPI(title="Guard Agent Example (FastAPI)", lifespan=lifespan)
+    app = FastAPI(title="Guard Agent Example (FastAPI)", lifespan=guard_lifespan)
 
     # Attach middleware and decorator
     app.add_middleware(SecurityMiddleware, config=security_config)
@@ -183,57 +167,16 @@ def create_fastapi_app_with_agent() -> FastAPI:
         """API endpoint with country blocking - events sent automatically."""
         return {"data": "Sensitive information"}
 
-    @app.get("/custom-event")
-    async def trigger_custom_event(request: Request) -> dict[str, str]:
-        """Example of sending custom events through direct agent access."""
-        # Get agent instance (singleton) - only for custom events
-        agent_config = AgentConfig(
-            api_key="demo-api-key-12345",
-            project_id="fastapi-demo",
-        )
-        agent = GuardAgentHandler(agent_config)
-
-        # Send custom business logic event
-        event = SecurityEvent(
-            timestamp=get_current_timestamp(),
-            event_type="custom_rule_triggered",
-            ip_address=request.client.host if request.client else "unknown",
-            action_taken="logged",
-            reason="Custom business logic event",
-            endpoint="/custom-event",
-            method="GET",
-            metadata={"custom_field": "custom_value"},
-        )
-
-        await agent.send_event(event)
-        return {"message": "Custom event sent", "event_type": event.event_type}
-
     @app.get("/health")
     async def health_check() -> dict[str, Any]:
-        """Health check including agent status."""
-        # Agent is managed by FastAPI Guard, but we can check its status
-        agent_config = AgentConfig(
-            api_key="demo-api-key-12345",
-            project_id="fastapi-demo",
-        )
-        agent = GuardAgentHandler(agent_config)  # Get singleton instance
+        """Health check reporting whether the agent is enabled.
 
-        try:
-            status = await agent.get_status()
-            stats = agent.get_stats()
-
-            return {
-                "app": "healthy",
-                "agent": {
-                    "status": status.status,
-                    "uptime": status.uptime,
-                    "events_sent": status.events_sent,
-                    "buffer_size": status.buffer_size,
-                    "transport_stats": stats.get("transport_stats", {}),
-                },
-            }
-        except Exception as e:
-            return {"app": "healthy", "agent": {"status": "error", "error": str(e)}}
+        There is no supported way to reach the middleware's own agent
+        singleton from a route handler in fastapi-guard's public API; this
+        mirrors what guard-core-app/examples/app.py exposes instead of
+        reconstructing an AgentConfig here.
+        """
+        return {"app": "healthy", "agent_enabled": security_config.enable_agent}
 
     print("FastAPI app created with automatic agent integration")
     print("Endpoints:")
@@ -241,8 +184,7 @@ def create_fastapi_app_with_agent() -> FastAPI:
     print("  GET /protected       - Rate limited (5 req/min)")
     print("  GET /admin           - IP whitelist + rate limit")
     print("  GET /api/data        - Country blocking + rate limit")
-    print("  GET /custom-event    - Send custom events")
-    print("  GET /health          - Health check with agent status")
+    print("  GET /health          - Health check")
     print("\nAll security violations are automatically sent to the agent!")
 
     return app

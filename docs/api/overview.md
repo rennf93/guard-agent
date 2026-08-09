@@ -57,6 +57,7 @@ The central orchestration component responsible for coordinating all telemetry o
 - **Task Coordination**: Manages asynchronous operations including buffer flushing and policy synchronization
 
 **Basic Usage (Auto-integrated with FastAPI Guard):**
+
 ```python
 from fastapi import FastAPI
 from guard import SecurityConfig, SecurityMiddleware
@@ -70,11 +71,14 @@ config = SecurityConfig(
 )
 
 app = FastAPI()
-middleware = SecurityMiddleware(app, config=config)
+app.add_middleware(SecurityMiddleware, config=config)
 # Agent starts automatically with middleware
 ```
 
 **Direct Usage (Advanced):**
+
+Only for a process with no framework adapter (fastapi-guard, flaskapi-guard, djapi-guard, tornadoapi-guard) enabling the agent through `SecurityConfig`. Doing this alongside an adapter with `enable_agent=True` builds a second singleton that never receives traffic. `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the events you send here don't reach the dashboard.
+
 ```python
 from guard_agent import guard_agent, AgentConfig
 
@@ -105,6 +109,7 @@ High-performance buffering subsystem engineered for optimal throughput and relia
 - **Concurrency Safety**: Full async/await compatibility with thread-safe operations
 
 **Usage Patterns:**
+
 ```python
 from guard_agent.buffer import EventBuffer
 from guard_agent.models import AgentConfig, SecurityEvent
@@ -136,6 +141,7 @@ Enterprise-grade network layer implementing industry best practices for reliable
 - **Comprehensive Telemetry**: Real-time transport statistics for operational visibility
 
 **Configuration:**
+
 ```python
 from guard_agent.transport import HTTPTransport
 from guard_agent.models import AgentConfig
@@ -270,7 +276,8 @@ class HTTPTransport:
 
 #### Core Data Models
 
-**AgentConfig**
+##### AgentConfig
+
 ```python
 class AgentConfig(BaseModel):
     api_key: str
@@ -292,16 +299,17 @@ class AgentConfig(BaseModel):
     # ... additional fields
 ```
 
-**Compression fields**
+##### Compression fields
 
 - `compression_enabled` (default `True`) — when set, the agent gzip-compresses every outgoing batch body whose JSON exceeds `compression_threshold` bytes and sends it with `Content-Encoding: gzip`. Smaller bodies skip compression. The Guard Core SaaS decompresses gzip request bodies via `GzipRequestMiddleware` before pydantic validation. Set `compression_enabled=False` only if your ingestion endpoint does not handle `Content-Encoding: gzip` request bodies.
 - `compression_threshold` (default `1024` bytes) — minimum body size in bytes before gzip kicks in. Tune lower for chatty deployments, higher to save CPU on small batches.
 
-**Retry-After**
+##### Retry-After
 
 429 responses raise `RateLimitedError(retry_after_seconds)`; the transport sleeps that exact value (capped at 300s) before retrying instead of falling back to client-side exponential backoff.
 
-**SecurityEvent**
+##### SecurityEvent
+
 ```python
 class SecurityEvent(BaseModel):
     timestamp: datetime
@@ -313,7 +321,8 @@ class SecurityEvent(BaseModel):
     # ... additional fields
 ```
 
-**SecurityMetric**
+##### SecurityMetric
+
 ```python
 class SecurityMetric(BaseModel):
     timestamp: datetime
@@ -356,10 +365,12 @@ config = SecurityConfig(
 )
 
 # Add middleware - agent starts automatically
-middleware = SecurityMiddleware(app, config=config)
+app.add_middleware(SecurityMiddleware, config=config)
 ```
 
 ### Pattern 2: Custom Event Integration
+
+Patterns 2 through 4 below build a standalone agent with `guard_agent(AgentConfig(...))`. That is only safe in a process with no adapter middleware enabling the agent through `SecurityConfig`: combined with Pattern 1 in the same process, `guard_agent()` returns a different singleton (`SyncGuardAgentHandler` from sync context vs. the middleware's `GuardAgentHandler`), and events sent through it never reach the dashboard.
 
 ```python
 from guard_agent import guard_agent, AgentConfig, SecurityEvent
@@ -527,8 +538,8 @@ Advanced techniques minimize bandwidth and latency:
 config = AgentConfig(api_key="your-api-key", buffer_size=100, flush_interval=10)
 
 # Standard API service (balanced profile)
-config = AgentConfig(api_key="your-api-key", buffer_size=1000, flush_interval=30)
+config = AgentConfig(api_key="your-api-key", buffer_size=100, flush_interval=30)
 
 # High-throughput gateway (optimized for volume)
-config = AgentConfig(api_key="your-api-key", buffer_size=10000, flush_interval=60)
+config = AgentConfig(api_key="your-api-key", buffer_size=100, flush_interval=5)
 ```

@@ -118,24 +118,24 @@ ___
 ## Core Capabilities
 
 ### Security Intelligence
--   **Automated Event Collection**: Captures comprehensive security events including authentication failures, authorization violations, rate limit breaches, and suspicious request patterns without manual instrumentation
--   **Real-Time Threat Detection**: Provides immediate visibility into security incidents with sub-second event propagation to the management platform
--   **Behavioral Analytics**: Tracks request patterns and user behavior to identify anomalies and potential security threats
+- **Automated Event Collection**: Captures comprehensive security events including authentication failures, authorization violations, rate limit breaches, and suspicious request patterns without manual instrumentation
+- **Real-Time Threat Detection**: Provides immediate visibility into security incidents with sub-second event propagation to the management platform
+- **Behavioral Analytics**: Tracks request patterns and user behavior to identify anomalies and potential security threats
 
 ### Enterprise Architecture
--   **Zero-Impact Performance**: Leverages asynchronous I/O and intelligent buffering to ensure telemetry collection adds negligible overhead to application performance
--   **Fault-Tolerant Design**: Implements circuit breakers, exponential backoff, and intelligent retry mechanisms to maintain operation during network disruptions
--   **Multi-Tier Buffering**: Combines in-memory and persistent Redis buffering to guarantee zero data loss during outages or maintenance windows
+- **Zero-Impact Performance**: Leverages asynchronous I/O and intelligent buffering to ensure telemetry collection adds negligible overhead to application performance
+- **Fault-Tolerant Design**: Implements circuit breakers, exponential backoff, and intelligent retry mechanisms to maintain operation during network disruptions
+- **Multi-Tier Buffering**: Combines in-memory and persistent Redis buffering to guarantee zero data loss during outages or maintenance windows
 
 ### Operational Excellence
--   **Dynamic Policy Management**: Supports real-time security policy updates without application restart, enabling immediate threat response
--   **Protocol-Based Extensibility**: Provides clean abstractions for custom transport implementations, storage backends, and data processors
--   **Comprehensive Observability**: Captures granular metrics including response times, error rates, and resource utilization for complete operational visibility
+- **Dynamic Policy Management**: Supports real-time security policy updates without application restart, enabling immediate threat response
+- **Protocol-Based Extensibility**: Provides clean abstractions for custom transport implementations, storage backends, and data processors
+- **Comprehensive Observability**: Captures granular metrics including response times, error rates, and resource utilization for complete operational visibility
 
 ### Data Governance
--   **Privacy-First Design**: Implements configurable data redaction for sensitive headers and payload truncation to meet compliance requirements
--   **Intelligent Rate Limiting**: Prevents API exhaustion through client-side rate limiting with adaptive backpressure
--   **Health Monitoring**: Continuous self-diagnostics with automatic health reporting and degradation detection
+- **Privacy-First Design**: Implements configurable data redaction for sensitive headers and payload truncation to meet compliance requirements
+- **Intelligent Rate Limiting**: Prevents API exhaustion through client-side rate limiting with adaptive backpressure
+- **Health Monitoring**: Continuous self-diagnostics with automatic health reporting and degradation detection
 
 ___
 
@@ -231,6 +231,8 @@ await agent.stop()
 ___
 
 ## Advanced Configuration
+
+These examples continue the standalone, direct-construction usage from [Advanced Usage Pattern](#advanced-usage-pattern) above and carry the same caveat: only in a process with no adapter middleware enabling the agent through `SecurityConfig`.
 
 ### Redis Integration
 
@@ -413,6 +415,12 @@ config = AgentConfig(
     timeout=30,            # Request timeout
 )
 ```
+
+___
+
+## Logfire / Pydantic Plugin Instrumentation
+
+`SecurityEvent` and `SecurityMetric` are validated on every request, and `EventBatch` re-validates every buffered event on each flush, enough volume that a host app calling `logfire.instrument_pydantic()` would otherwise get a validation span per security event. `guard_agent`'s `__init__` mutes this automatically: at import time it sets `model_config["plugin_settings"]["logfire"] = {"record": "off"}` on `SecurityEvent`, `SecurityMetric`, and `EventBatch`, then force-rebuilds each model so the setting takes effect. This runs whether or not `logfire` is installed, is idempotent (guard-core applies the identical mute to the same models at its own import), and requires no configuration on a normal import. It is not unconditional: the whole thing runs once at import with no retry, so any failure is permanent for the life of the process, and there are two distinct failure paths. If `guard_agent.models` itself fails to import, `_mute_pydantic_plugin_instrumentation` returns silently with nothing logged. Otherwise, `SecurityEvent`, `SecurityMetric`, and `EventBatch` are muted in one loop under a single shared `try`/`except`, so a `model_rebuild` failure on one model stops the loop before the remaining models are muted, though that case does log one warning naming the failure, not which models were left unmuted.
 
 ___
 

@@ -61,7 +61,7 @@ config = SecurityConfig(
 )
 
 # Add security middleware - agent starts automatically
-middleware = SecurityMiddleware(app, config=config)
+app.add_middleware(SecurityMiddleware, config=config)
 
 @app.get("/")
 async def root():
@@ -142,7 +142,7 @@ The agent gzip-compresses outgoing telemetry batches whose JSON body exceeds the
 
 Why it matters:
 
-- **Bandwidth.** A typical batch of 100 security events compresses 5–10×. Customers running guard-agent inside high-traffic services see meaningful egress savings, especially with `agent_buffer_size=500` and a 60-second flush interval.
+- **Bandwidth.** A typical batch of 100 security events compresses 5x to 10x. Customers running guard-agent inside high-traffic services see meaningful egress savings, especially near the safe `buffer_size` ceiling of 100 events. Keep `buffer_size` at 100 or lower and tune `flush_interval` instead; a larger `buffer_size` risks a batch that exceeds the 256 KiB SaaS body cap.
 - **Tail latency.** Smaller payloads mean fewer TCP round-trips and faster TLS writes. Useful when the agent shares a network path with the application's own traffic.
 - **Cost.** When the SaaS endpoint is a managed gateway (CloudFront, Cloudflare, GCP HTTP(S) LB), compression cuts metered egress and request size charges.
 
@@ -153,7 +153,7 @@ Compatibility:
 | **Guard Core SaaS (`https://api.guard-core.com`)** | Works as-is. The SaaS decompresses gzip request bodies via its `GzipRequestMiddleware` before pydantic validation. No customer action required. |
 | **Custom ingestion endpoint without gzip request decoding** | Build the agent with `AgentConfig(..., compression_enabled=False)`. Most plain FastAPI / Flask / Django apps do not auto-decompress gzip *request* bodies; compressed batches will fail body parsing on those backends. |
 
-Tuning is done on `AgentConfig` directly (the agent transport owns compression; `SecurityConfig` does not forward these knobs):
+Tuning is done on `AgentConfig` directly (the agent transport owns compression; `SecurityConfig` does not forward these knobs). This means there is currently no way to change compression settings for an agent driven by `enable_agent=True` on `SecurityConfig`. The snippet below only applies to a standalone agent in a process with no adapter middleware enabling the agent through `SecurityConfig`:
 
 ```python
 from guard_agent import guard_agent, AgentConfig
@@ -189,11 +189,10 @@ config = SecurityConfig(
     # ... other settings
 )
 
-middleware = SecurityMiddleware(app, config=config)
 guard = SecurityDecorator(config)
 
-# Connect decorator to middleware for behavioral tracking
-middleware.set_decorator_handler(guard)
+app.add_middleware(SecurityMiddleware, config=config)
+app.state.guard_decorator = guard
 
 @app.get("/")
 async def root():
@@ -225,45 +224,50 @@ async def sensitive_api():
 Comprehensive testing ensures proper agent operation:
 
 1. **Application Startup**:
-   ```bash
-   uvicorn main:app --reload --log-level info
-   ```
+
+    ```bash
+    uvicorn main:app --reload --log-level info
+    ```
 
 2. **Functional Verification**:
-   ```bash
-   # Baseline connectivity test
-   curl http://localhost:8000/
 
-   # Security event generation
-   curl -X POST http://localhost:8000/api/sensitive -d "test_injection"
+    ```bash
+    # Baseline connectivity test
+    curl http://localhost:8000/
 
-   # Performance metric generation
-   curl http://localhost:8000/api/heavy-operation
+    # Security event generation
+    curl -X POST http://localhost:8000/api/sensitive -d "test_injection"
 
-   # Agent health verification
-   curl http://localhost:8000/health
-   ```
+    # Performance metric generation
+    curl http://localhost:8000/api/heavy-operation
+
+    # Agent health verification
+    curl http://localhost:8000/health
+    ```
 
 3. **Log Analysis**: Verify proper initialization:
-   ```
-   INFO:     FastAPI Guard security middleware initialized
-   INFO:     Agent telemetry pipeline established
-   INFO:     Dynamic rule synchronization active
-   ```
 
-4. **Automatic Event Categories**: The agent captures:
-   - Rate limiting violations with request metadata
-   - IP-based access control events
-   - Geographic restriction violations
-   - Pattern-based threat detection
-   - Authentication and authorization failures
-   - Custom security rule triggers
+    ```text
+    INFO:     FastAPI Guard security middleware initialized
+    INFO:     Agent telemetry pipeline established
+    INFO:     Dynamic rule synchronization active
+    ```
+
+**Automatic Event Categories**: the agent captures:
+
+- Rate limiting violations with request metadata
+- IP-based access control events
+- Geographic restriction violations
+- Pattern-based threat detection
+- Authentication and authorization failures
+- Custom security rule triggers
 
 ## Deployment Patterns
 
 ### Environment-Specific Configuration
 
 **Development Environment:**
+
 ```python
 # config_dev.py
 from guard import SecurityConfig
@@ -284,6 +288,7 @@ dev_config = SecurityConfig(
 ```
 
 **Production Environment:**
+
 ```python
 # config_prod.py
 from guard import SecurityConfig
@@ -293,7 +298,7 @@ prod_config = SecurityConfig(
     enable_agent=True,
     agent_api_key="prod-api-key",
     agent_project_id="my-app-prod",
-    agent_buffer_size=500,         # Larger buffer for efficiency
+    agent_buffer_size=100,         # Safe ceiling for the 256 KiB SaaS body cap
     agent_flush_interval=60,       # Less frequent flushes
     agent_retry_attempts=5,        # More retries for reliability
 
@@ -329,7 +334,7 @@ config = SecurityConfig(
 )
 
 try:
-    middleware = SecurityMiddleware(app, config=config)
+    app.add_middleware(SecurityMiddleware, config=config)
     logger.info("Security middleware initialized with telemetry pipeline")
 except Exception as e:
     logger.warning(f"Telemetry initialization failed: {e}")
@@ -338,7 +343,7 @@ except Exception as e:
 
 ### Custom Event Handling (Advanced)
 
-For scenarios requiring custom business logic events beyond standard security violations:
+For scenarios requiring custom business logic events beyond standard security violations, with no FastAPI Guard middleware enabling the agent in the same process. Do not combine this with the `enable_agent=True` `SecurityConfig` pattern shown earlier in this guide. `guard_agent()` dispatches to `SyncGuardAgentHandler` from sync module-load context but to `GuardAgentHandler` from the middleware's async init, so the two are separate singletons and only the middleware's instance receives traffic:
 
 ```python
 from guard_agent import guard_agent, AgentConfig, SecurityEvent
