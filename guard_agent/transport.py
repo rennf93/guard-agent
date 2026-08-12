@@ -210,6 +210,7 @@ class HTTPTransport(TransportProtocol):
                 created_at=get_current_timestamp(),
                 agent_version=_AGENT_VERSION,
                 guard_version=self.config.guard_version,
+                guard_core_version=self.config.guard_core_version,
             )
 
             return await self._send_with_retry(
@@ -241,6 +242,7 @@ class HTTPTransport(TransportProtocol):
                 created_at=get_current_timestamp(),
                 agent_version=_AGENT_VERSION,
                 guard_version=self.config.guard_version,
+                guard_core_version=self.config.guard_core_version,
             )
 
             return await self._send_with_retry(
@@ -523,6 +525,7 @@ class HTTPTransport(TransportProtocol):
             "batch_id": data.get("batch_id"),
             "agent_version": _AGENT_VERSION,
             "guard_version": self.config.guard_version,
+            "guard_core_version": self.config.guard_core_version,
         }
         encrypted_url = f"{self.config.endpoint.rstrip('/')}/api/v1/events/encrypted"
         try:
