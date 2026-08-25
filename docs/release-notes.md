@@ -3,6 +3,18 @@ Release Notes
 
 ___
 
+v2.9.0 (2026-08-25)
+-------------------
+
+Carry guard_core_version on telemetry so the SaaS can identify vulnerable guard-core releases (v2.9.0)
+------------------------------------------------------------------------------------------------------
+
+### Added
+
+- **`AgentConfig` and `EventBatch` now carry `guard_core_version`, and `HTTPTransport` sends it on all three send paths.** guard-core 3.13.0 sets `guard_core_version` to the running `guard_core.__version__` when it builds the agent config at init, so the SaaS can identify deployments running a vulnerable guard-core release independently of the wrapper's own version. guard-agent 2.8.1 had no such field and silently dropped the value (Pydantic default `extra=ignore`), so it never reached the platform. The field is now accepted, carried on the two `EventBatch` constructions and the encrypted-payload dict, and sent alongside `guard_version`.
+
+___
+
 v2.8.1 (2026-08-09)
 -------------------
 

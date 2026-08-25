@@ -1,6 +1,6 @@
 [project]
 name = "guard-agent"
-version = "2.8.1"
+version = "2.9.0"
 description = "Framework-agnostic telemetry and monitoring agent for the Guard security ecosystem (fastapi-guard, flaskapi-guard, djangoapi-guard, tornadoapi-guard)"
 authors = [
     {name = "Renzo Franceschini", email = "rennf93@users.noreply.github.com"}

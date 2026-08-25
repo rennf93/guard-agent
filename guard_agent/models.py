@@ -120,6 +120,15 @@ class AgentConfig(BaseModel):
             "to the wrapper version rather than just the agent version."
         ),
     )
+    guard_core_version: str | None = Field(
+        default=None,
+        description=(
+            "Version of the guard-core library backing this agent's host "
+            "framework. guard-core sets this at agent init time so the SaaS "
+            "can identify deployments running a vulnerable guard-core release "
+            "independently of the wrapper's own version."
+        ),
+    )
 
     compression_enabled: bool = Field(
         default=True,
@@ -320,4 +329,7 @@ class EventBatch(BaseModel):
     agent_version: str | None = Field(default=None, description="Agent version string")
     guard_version: str | None = Field(
         default=None, description="Framework integration version (e.g. fastapi-guard)"
+    )
+    guard_core_version: str | None = Field(
+        default=None, description="guard-core library version backing this agent"
     )

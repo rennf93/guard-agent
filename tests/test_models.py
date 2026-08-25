@@ -44,6 +44,8 @@ class TestAgentConfig:
         assert config.flush_interval == 30
         assert config.enable_metrics is True
         assert config.enable_events is True
+        assert config.guard_version is None
+        assert config.guard_core_version is None
 
     def test_invalid_endpoint_empty(self) -> None:
         """Test that empty endpoint raises validation error."""
@@ -80,6 +82,20 @@ class TestAgentConfig:
         """Test that HTTPS endpoint is valid."""
         config = AgentConfig(api_key="test", endpoint="https://api.example.com")
         assert config.endpoint == "https://api.example.com"
+
+    def test_config_ignores_unknown_kwarg_from_a_newer_caller(self) -> None:
+        """A guard-core newer than this guard-agent may pass a kwarg this
+        version does not declare yet; it must be silently dropped, not
+        raise, so old guard-agent releases stay compatible with new
+        guard-core releases."""
+        config = AgentConfig.model_validate(
+            {
+                "api_key": "test",
+                "some_future_field_this_version_does_not_know": "value",
+            }
+        )
+        assert config.api_key == "test"
+        assert not hasattr(config, "some_future_field_this_version_does_not_know")
 
 
 class TestSecurityEvent:
@@ -295,3 +311,23 @@ class TestEventBatch:
         assert len(batch.events) == 1
         assert batch.batch_id == "test-batch-123"
         assert batch.created_at == timestamp
+        assert batch.guard_version is None
+        assert batch.guard_core_version is None
+
+    def test_batch_carries_guard_core_version_independently_of_guard_version(
+        self,
+    ) -> None:
+        """guard_core_version is a distinct field from guard_version and
+        agent_version; setting one must not affect the others."""
+        batch = EventBatch(
+            project_id="test-project",
+            batch_id="test-batch-123",
+            created_at=datetime.now(timezone.utc),
+            agent_version="2.8.1",
+            guard_version="7.0.0",
+            guard_core_version="3.12.0",
+        )
+
+        assert batch.agent_version == "2.8.1"
+        assert batch.guard_version == "7.0.0"
+        assert batch.guard_core_version == "3.12.0"

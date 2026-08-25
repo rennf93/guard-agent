@@ -106,6 +106,76 @@ class TestHTTPTransport:
         assert payload["guard_version"] == "6.0.0"
 
     @pytest.mark.asyncio
+    async def test_send_events_includes_guard_core_version_in_payload(
+        self, agent_config: AgentConfig, mock_client: AsyncMock
+    ) -> None:
+        agent_config.guard_core_version = "3.12.0"
+        transport = HTTPTransport(agent_config)
+        transport._client = mock_client
+
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="192.168.1.1",
+                action_taken="banned",
+                reason="test",
+            )
+        ]
+
+        await transport.send_events(events)
+
+        body = mock_client.post.call_args.kwargs["content"]
+        payload = json.loads(body)
+        assert payload["guard_core_version"] == "3.12.0"
+
+    @pytest.mark.asyncio
+    async def test_send_metrics_includes_guard_core_version_in_payload(
+        self, agent_config: AgentConfig, mock_client: AsyncMock
+    ) -> None:
+        agent_config.guard_core_version = "3.12.0"
+        transport = HTTPTransport(agent_config)
+        transport._client = mock_client
+
+        metrics = [
+            SecurityMetric(
+                timestamp=datetime.now(timezone.utc),
+                metric_type="request_count",
+                value=1.0,
+            )
+        ]
+
+        await transport.send_metrics(metrics)
+
+        body = mock_client.post.call_args.kwargs["content"]
+        payload = json.loads(body)
+        assert payload["guard_core_version"] == "3.12.0"
+
+    @pytest.mark.asyncio
+    async def test_send_events_guard_core_version_absent_when_unset(
+        self, agent_config: AgentConfig, mock_client: AsyncMock
+    ) -> None:
+        """An older guard-core that never sets guard_core_version still sends None."""
+        transport = HTTPTransport(agent_config)
+        transport._client = mock_client
+
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="192.168.1.1",
+                action_taken="banned",
+                reason="test",
+            )
+        ]
+
+        await transport.send_events(events)
+
+        body = mock_client.post.call_args.kwargs["content"]
+        payload = json.loads(body)
+        assert payload["guard_core_version"] is None
+
+    @pytest.mark.asyncio
     async def test_send_events_failure(
         self, agent_config: AgentConfig, mock_client: AsyncMock
     ) -> None:
@@ -1176,6 +1246,90 @@ class TestHTTPTransportEncryption:
         assert transport._encryption_enabled is True
         # Verify encrypted endpoint was used
         assert mock_client.post.call_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_send_events_encrypted_path_carries_guard_core_version(
+        self, mock_client: AsyncMock
+    ) -> None:
+        """The encrypted transmit path reconstructs its body field by field;
+        guard_core_version must be wired into that reconstruction, not just
+        the model, or it silently never leaves the process."""
+        import base64
+
+        valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
+        config = AgentConfig(
+            api_key="test_key",
+            endpoint="http://test.com",
+            project_id="test_project",
+            project_encryption_key=valid_key,
+            guard_core_version="3.12.0",
+        )
+
+        transport = HTTPTransport(config)
+        transport._client = mock_client
+
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.json = MagicMock(return_value={"status": "ok"})
+        mock_client.post.return_value = mock_response
+
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="192.168.1.1",
+                action_taken="banned",
+                reason="test",
+            )
+        ]
+
+        result = await transport.send_events(events)
+        assert result is True
+
+        call_args = mock_client.post.call_args
+        assert "/api/v1/events/encrypted" in str(call_args[0][0])
+        sent_body = json.loads(call_args.kwargs["content"])
+        assert sent_body["guard_core_version"] == "3.12.0"
+        assert sent_body["guard_version"] is None
+        assert "encrypted_payload" in sent_body
+
+    @pytest.mark.asyncio
+    async def test_send_metrics_encrypted_path_carries_guard_core_version(
+        self, mock_client: AsyncMock
+    ) -> None:
+        import base64
+
+        valid_key = base64.urlsafe_b64encode(b"0" * 32).decode()
+        config = AgentConfig(
+            api_key="test_key",
+            endpoint="http://test.com",
+            project_id="test_project",
+            project_encryption_key=valid_key,
+            guard_core_version="3.12.0",
+        )
+
+        transport = HTTPTransport(config)
+        transport._client = mock_client
+
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.json = MagicMock(return_value={"status": "ok"})
+        mock_client.post.return_value = mock_response
+
+        metrics = [
+            SecurityMetric(
+                timestamp=datetime.now(timezone.utc),
+                metric_type="request_count",
+                value=1.0,
+            )
+        ]
+
+        result = await transport.send_metrics(metrics)
+        assert result is True
+
+        call_args = mock_client.post.call_args
+        sent_body = json.loads(call_args.kwargs["content"])
+        assert sent_body["guard_core_version"] == "3.12.0"
 
 
 class TestHTTPTransportForkSafety:

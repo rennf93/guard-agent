@@ -25,6 +25,7 @@
 | `max_payload_size` | `1024` | Max payload size included in an event (bytes). |
 | `project_encryption_key` | `None` | When set, payloads are AES-256-GCM encrypted to `/api/v1/events/encrypted`. |
 | `guard_version` | `None` | Framework adapter version, set by the adapter at init. |
+| `guard_core_version` | `None` | guard-core library version, set by guard-core at init. |
 | `compression_enabled` | `True` | Gzip bodies above `compression_threshold`. |
 | `compression_threshold` | `1024` | Min body size in bytes before gzip applies. |
 | `install_id` | `None` | Override agent install ID (auto-generated otherwise). |
