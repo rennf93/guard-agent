@@ -437,6 +437,36 @@ class TestHTTPTransport:
         assert "192.168.1.1" in rules.ip_blacklist
 
     @pytest.mark.asyncio
+    async def test_fetch_dynamic_rules_auto_ban_fields(
+        self, agent_config: AgentConfig, mock_client: AsyncMock
+    ) -> None:
+        """Test fetching dynamic rules carries the auto-ban fields end to end."""
+        transport = HTTPTransport(agent_config)
+        transport._client = mock_client
+
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.json = MagicMock(
+            return_value={
+                "rule_id": "test-rule-123",
+                "version": 1,
+                "timestamp": "2025-01-08T10:00:00Z",
+                "ttl": 300,
+                "auto_ban_threshold": 5,
+                "auto_ban_duration": 1800,
+                "enable_rate_limit_auto_ban": True,
+            }
+        )
+        mock_client.get.return_value = mock_response
+
+        rules = await transport.fetch_dynamic_rules()
+
+        assert rules is not None
+        assert rules.auto_ban_threshold == 5
+        assert rules.auto_ban_duration == 1800
+        assert rules.enable_rate_limit_auto_ban is True
+
+    @pytest.mark.asyncio
     async def test_fetch_dynamic_rules_failure(
         self, agent_config: AgentConfig, mock_client: AsyncMock
     ) -> None:

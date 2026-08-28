@@ -238,6 +238,9 @@ class TestDynamicRules:
             whitelist_countries=["US"],
             global_rate_limit=100,
             ttl=300,
+            auto_ban_threshold=5,
+            auto_ban_duration=1800,
+            enable_rate_limit_auto_ban=True,
         )
 
         assert "192.168.1.1" in rules.ip_blacklist
@@ -246,6 +249,9 @@ class TestDynamicRules:
         assert "US" in rules.whitelist_countries
         assert rules.global_rate_limit == 100
         assert rules.ttl == 300
+        assert rules.auto_ban_threshold == 5
+        assert rules.auto_ban_duration == 1800
+        assert rules.enable_rate_limit_auto_ban is True
 
     def test_default_rules(self) -> None:
         """Test default values for dynamic rules."""
@@ -256,6 +262,9 @@ class TestDynamicRules:
         assert rules.blocked_countries == []
         assert rules.whitelist_countries == []
         assert rules.endpoint_rate_limits == {}
+        assert rules.auto_ban_threshold is None
+        assert rules.auto_ban_duration is None
+        assert rules.enable_rate_limit_auto_ban is None
         assert rules.ttl == 300
         assert rules.rule_id == "default-rule"
         assert rules.version == 1
