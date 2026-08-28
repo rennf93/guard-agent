@@ -3,6 +3,19 @@ Release Notes
 
 ___
 
+v2.9.1 (2026-08-28)
+-------------------
+
+Carry the auto-ban overrides guard-core 3.13.0+ reads off DynamicRules (v2.9.1)
+-------------------------------------------------------------------------------
+
+### Fixed
+
+- **`DynamicRules` now defines `auto_ban_threshold`, `auto_ban_duration` and `enable_rate_limit_auto_ban`.** guard-core 3.13.0 started reading all three during rule application, but this model never declared them (Pydantic default `extra=ignore` dropped them from the backend payload), so on guard-core 3.13.0 and later every poll ended in `Failed to apply dynamic rules: 'DynamicRules' object has no attribute 'enable_rate_limit_auto_ban'` and guard-core restored its pre-apply config snapshot, discarding the rest of the push. Reproduced live on guard-core 3.15.0 against a fresh project before any rule was pushed. All three are optional overrides defaulting to `None`, so guard-core skips them when unset and applies them when the backend sends them (#44).
+- **The two integer overrides are floored at `1`.** guard-core's own `DynamicRules` mirror and its `SecurityConfig` revalidator reject `auto_ban_threshold` and `auto_ban_duration` below `1`, so a push carrying `0` would have failed mid-apply and rolled the whole rule back the same way. The floor is enforced at parse time instead.
+
+___
+
 v2.9.0 (2026-08-25)
 -------------------
 
