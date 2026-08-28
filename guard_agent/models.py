@@ -292,10 +292,10 @@ class DynamicRules(BaseModel):
         default=None, description="Override rate limiting setting"
     )
     auto_ban_threshold: int | None = Field(
-        default=None, description="Override auto-ban threshold setting"
+        default=None, ge=1, description="Override auto-ban threshold setting"
     )
     auto_ban_duration: int | None = Field(
-        default=None, description="Override auto-ban duration setting"
+        default=None, ge=1, description="Override auto-ban duration setting"
     )
     enable_rate_limit_auto_ban: bool | None = Field(
         default=None, description="Override rate-limit auto-ban setting"

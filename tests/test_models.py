@@ -269,6 +269,15 @@ class TestDynamicRules:
         assert rules.rule_id == "default-rule"
         assert rules.version == 1
 
+    @pytest.mark.parametrize("field", ["auto_ban_threshold", "auto_ban_duration"])
+    def test_auto_ban_ints_reject_values_below_one(self, field: str) -> None:
+        """Mirror guard-core's ge=1 floor so a push of 0 fails here, not mid-apply."""
+        assert getattr(DynamicRules(**{field: 1}), field) == 1
+        with pytest.raises(ValidationError):
+            DynamicRules(**{field: 0})
+        with pytest.raises(ValidationError):
+            DynamicRules(**{field: -5})
+
 
 class TestAgentStatus:
     """Tests for AgentStatus model."""
