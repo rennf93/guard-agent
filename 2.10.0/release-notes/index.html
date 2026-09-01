@@ -1,0 +1,3162 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Framework-agnostic telemetry and monitoring agent for the Guard security ecosystem (fastapi-guard, flaskapi-guard, djangoapi-guard, tornadoapi-guard).">
+      
+      
+      
+        <link rel="canonical" href="https://rennf93.github.io/guard-agent/latest/2.10.0/release-notes/">
+      
+      
+        <link rel="prev" href="../api/overview/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/guard_core_favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Release Notes - Guard Agent</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../css/custom.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-GQCSXMF1WB"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-GQCSXMF1WB",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-GQCSXMF1WB",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="dark-blue" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#release-notes" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  <div class="gc-announce">
+    Running Guard in production?
+    <a href="https://guard-core.com/?utm_source=docs&amp;utm_medium=guard-agent&amp;utm_campaign=docs_announce">The hosted platform</a>
+    adds live dashboards, alerting and dynamic rules you can push without a redeploy.
+    <a href="https://playground.guard-core.com/?utm_source=docs&amp;utm_medium=guard-agent&amp;utm_campaign=docs_announce_playground">Try the playground</a>
+    first, no account needed.
+  </div>
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Guard Agent" class="md-header__button md-logo" aria-label="Guard Agent" data-md-component="logo">
+      
+  <img src="../assets/guard_core_logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Guard Agent
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Release Notes
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="dark-blue" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="dark-blue" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/rennf93/guard-agent" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    rennf93/guard-agent
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../adapters/fastapi/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Adapters
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorial/getting-started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Tutorial
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/overview/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release Notes
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Guard Agent" class="md-nav__button md-logo" aria-label="Guard Agent" data-md-component="logo">
+      
+  <img src="../assets/guard_core_logo.svg" alt="logo">
+
+    </a>
+    Guard Agent
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/rennf93/guard-agent" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    rennf93/guard-agent
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Adapters
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adapters/fastapi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FastAPI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adapters/flask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flask
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adapters/django/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Django
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adapters/tornado/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tornado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorial
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorial/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v2100-2026-09-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.10.0 (2026-09-01)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-logs-that-identify-themselves-v2100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent logs that identify themselves (v2.10.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agent logs that identify themselves (v2.10.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-v2100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal (v2.10.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v291-2026-08-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.9.1 (2026-08-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#carry-the-auto-ban-overrides-guard-core-3130-reads-off-dynamicrules-v291" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Carry the auto-ban overrides guard-core 3.13.0+ reads off DynamicRules (v2.9.1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Carry the auto-ban overrides guard-core 3.13.0+ reads off DynamicRules (v2.9.1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v290-2026-08-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.9.0 (2026-08-25)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#carry-guard_core_version-on-telemetry-so-the-saas-can-identify-vulnerable-guard-core-releases-v290" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Carry guard_core_version on telemetry so the SaaS can identify vulnerable guard-core releases (v2.9.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Carry guard_core_version on telemetry so the SaaS can identify vulnerable guard-core releases (v2.9.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v281-2026-08-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.8.1 (2026-08-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation-accuracy-sweep-six-snippets-showed-middleware-that-never-attaches-v281" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation accuracy sweep: six snippets showed middleware that never attaches (v2.8.1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Documentation accuracy sweep: six snippets showed middleware that never attaches (v2.8.1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v280-2026-08-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.8.0 (2026-08-03)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#split-or-drop-on-413-drop-on-permanent-4xx-standalone-logfire-mute-library-skills-skill-v280" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Split-or-drop on 413, drop on permanent 4xx, standalone logfire mute, library-skills skill (v2.8.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Split-or-drop on 413, drop on permanent 4xx, standalone logfire mute, library-skills skill (v2.8.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behaviour-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v271-2026-07-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.7.1 (2026-07-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bounded-response-body-logging-and-partial-failure-backoff-v271" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bounded response-body logging and partial-failure backoff (v2.7.1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bounded response-body logging and partial-failure backoff (v2.7.1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v270-2026-06-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.7.0 (2026-06-23)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observable-transport-errors-and-documented-protocols-v270" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observable transport errors and documented Protocols (v2.7.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Observable transport errors and documented Protocols (v2.7.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v260-2026-05-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.6.0 (2026-05-12)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configurable-rules-and-status-loop-intervals-v260" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configurable rules and status loop intervals (v2.6.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v250-2026-05-06" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.5.0 (2026-05-06)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-id-fingerprinting-and-optional-hmac-payload-signing-v250" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install ID fingerprinting and optional HMAC payload signing (v2.5.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v241-2026-04-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.4.1 (2026-04-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostic-friendly-transport-error-logging-v241" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostic-friendly transport error logging (v2.4.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v240-2026-04-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.4.0 (2026-04-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-event-idempotency-keys-configurable-overflow-policy-and-framework-version-reporting-v240" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-event idempotency keys, configurable overflow policy, and framework-version reporting (v2.4.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Per-event idempotency keys, configurable overflow policy, and framework-version reporting (v2.4.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v230-2026-04-26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.3.0 (2026-04-26)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-safety-v230" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Safety (v2.3.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-v230" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal (v2.3.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v220-2026-04-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.2.0 (2026-04-25)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-safety-v220" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Safety (v2.2.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compression-v220" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression (v2.2.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning-hygiene-v220" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning hygiene (v2.2.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-coverage-v220" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test coverage (v2.2.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v210-2026-04-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.1.0 (2026-04-24)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-adapter-coverage-v210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Adapter Coverage (v2.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-changes-v210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Changes (v2.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v200-2026-04-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.0.0 (2026-04-24)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#package-rename-v200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package Rename (v2.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-changes-v200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Changes (v2.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#breaking-changes-v200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes (v2.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-guide-v200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Guide (v2.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v111-2026-03-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.1.1 (2026-03-11)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bug-fixes-v111" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bug Fixes (v1.1.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maintenance-v111" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Maintenance (v1.1.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v110-2025-10-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.1.0 (2025-10-14)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-v110" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features (v1.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technical-details-v110" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technical Details (v1.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v102-2025-09-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.0.2 (2025-09-12)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhancements-v102" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhancements (v1.0.2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v101-2025-08-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.0.1 (2025-08-07)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhancements-v101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhancements (v1.0.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v100-2025-07-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.0.0 (2025-07-24)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#official-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Official Release
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v011-2025-07-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.1.1 (2025-07-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhancements-v011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhancements (v0.1.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v010-2025-07-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.1.0 (2025-07-08)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhancements-v010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhancements (v0.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v001-2025-06-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.0.1 (2025-06-22)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-v001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features (v0.0.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v2100-2026-09-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.10.0 (2026-09-01)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-logs-that-identify-themselves-v2100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent logs that identify themselves (v2.10.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agent logs that identify themselves (v2.10.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-v2100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal (v2.10.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v291-2026-08-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.9.1 (2026-08-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#carry-the-auto-ban-overrides-guard-core-3130-reads-off-dynamicrules-v291" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Carry the auto-ban overrides guard-core 3.13.0+ reads off DynamicRules (v2.9.1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Carry the auto-ban overrides guard-core 3.13.0+ reads off DynamicRules (v2.9.1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v290-2026-08-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.9.0 (2026-08-25)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#carry-guard_core_version-on-telemetry-so-the-saas-can-identify-vulnerable-guard-core-releases-v290" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Carry guard_core_version on telemetry so the SaaS can identify vulnerable guard-core releases (v2.9.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Carry guard_core_version on telemetry so the SaaS can identify vulnerable guard-core releases (v2.9.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v281-2026-08-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.8.1 (2026-08-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation-accuracy-sweep-six-snippets-showed-middleware-that-never-attaches-v281" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation accuracy sweep: six snippets showed middleware that never attaches (v2.8.1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Documentation accuracy sweep: six snippets showed middleware that never attaches (v2.8.1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v280-2026-08-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.8.0 (2026-08-03)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#split-or-drop-on-413-drop-on-permanent-4xx-standalone-logfire-mute-library-skills-skill-v280" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Split-or-drop on 413, drop on permanent 4xx, standalone logfire mute, library-skills skill (v2.8.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Split-or-drop on 413, drop on permanent 4xx, standalone logfire mute, library-skills skill (v2.8.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#added_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behaviour-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behaviour changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v271-2026-07-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.7.1 (2026-07-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bounded-response-body-logging-and-partial-failure-backoff-v271" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bounded response-body logging and partial-failure backoff (v2.7.1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bounded response-body logging and partial-failure backoff (v2.7.1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v270-2026-06-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.7.0 (2026-06-23)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observable-transport-errors-and-documented-protocols-v270" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observable transport errors and documented Protocols (v2.7.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Observable transport errors and documented Protocols (v2.7.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v260-2026-05-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.6.0 (2026-05-12)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configurable-rules-and-status-loop-intervals-v260" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configurable rules and status loop intervals (v2.6.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v250-2026-05-06" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.5.0 (2026-05-06)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-id-fingerprinting-and-optional-hmac-payload-signing-v250" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install ID fingerprinting and optional HMAC payload signing (v2.5.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v241-2026-04-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.4.1 (2026-04-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostic-friendly-transport-error-logging-v241" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostic-friendly transport error logging (v2.4.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v240-2026-04-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.4.0 (2026-04-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-event-idempotency-keys-configurable-overflow-policy-and-framework-version-reporting-v240" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-event idempotency keys, configurable overflow policy, and framework-version reporting (v2.4.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Per-event idempotency keys, configurable overflow policy, and framework-version reporting (v2.4.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v230-2026-04-26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.3.0 (2026-04-26)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-safety-v230" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Safety (v2.3.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-v230" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal (v2.3.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v220-2026-04-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.2.0 (2026-04-25)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-safety-v220" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Safety (v2.2.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compression-v220" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression (v2.2.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning-hygiene-v220" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning hygiene (v2.2.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-coverage-v220" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test coverage (v2.2.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v210-2026-04-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.1.0 (2026-04-24)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-adapter-coverage-v210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Adapter Coverage (v2.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-changes-v210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Changes (v2.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v200-2026-04-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v2.0.0 (2026-04-24)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#package-rename-v200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package Rename (v2.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-changes-v200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Changes (v2.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#breaking-changes-v200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Breaking Changes (v2.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-guide-v200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration Guide (v2.0.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v111-2026-03-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.1.1 (2026-03-11)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bug-fixes-v111" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bug Fixes (v1.1.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maintenance-v111" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Maintenance (v1.1.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v110-2025-10-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.1.0 (2025-10-14)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-v110" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features (v1.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technical-details-v110" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technical Details (v1.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v102-2025-09-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.0.2 (2025-09-12)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhancements-v102" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhancements (v1.0.2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v101-2025-08-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.0.1 (2025-08-07)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhancements-v101" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhancements (v1.0.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v100-2025-07-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v1.0.0 (2025-07-24)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#official-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Official Release
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v011-2025-07-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.1.1 (2025-07-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhancements-v011" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhancements (v0.1.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v010-2025-07-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.1.0 (2025-07-08)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhancements-v010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enhancements (v0.1.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v001-2025-06-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.0.1 (2025-06-22)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-v001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Features (v0.0.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="release-notes">Release Notes<a class="headerlink" href="#release-notes" title="Permanent link">&para;</a></h1>
+<hr />
+<h2 id="v2100-2026-09-01">v2.10.0 (2026-09-01)<a class="headerlink" href="#v2100-2026-09-01" title="Permanent link">&para;</a></h2>
+<h2 id="agent-logs-that-identify-themselves-v2100">Agent logs that identify themselves (v2.10.0)<a class="headerlink" href="#agent-logs-that-identify-themselves-v2100" title="Permanent link">&para;</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>guard-agent log lines now carry an origin prefix.</strong> <code>setup_agent_logging</code> attaches guard-core's standard formatter (<code>[guard_agent.client] 2026-09-01 12:00:00 - WARNING - ...</code>) to the <code>guard_agent</code> logger tree, so agent records such as <code>Events flush recovered after N consecutive partial failure(s)</code> are identifiable in hosted log viewers instead of arriving bare. It runs automatically when a <code>GuardAgentHandler</code> or <code>SyncGuardAgentHandler</code> is constructed, and the function is exported for explicit host use: <code>setup_agent_logging(log_file=..., log_format="json")</code>.</li>
+<li><strong>JSON output and an optional file sink.</strong> <code>log_format="json"</code> emits <code>{"timestamp", "level", "logger", "message"}</code>; <code>log_file=...</code> adds a <code>FileHandler</code> alongside the console handler. A console handler is only attached when the root logger has no handlers, matching guard-core's yield-to-host contract, so records still reach host-configured logging through propagation.</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>The automatic setup is non-destructive: hosts keep their logging configuration.</strong> Constructing the handler attaches at most one console handler, never changes a level the host set, and never removes a host-configured file handler or formatter, no matter how many times the handler is constructed. Hosts reconfigure by calling <code>setup_agent_logging(...)</code> explicitly, which re-applies intent (agent handlers are cleared first).</li>
+<li><strong>The old async <code>setup_agent_logging</code> stub in <code>guard_agent.utils</code> is gone.</strong> It was never called and had zero consumers across the ecosystem, and its export now points at the real implementation in <code>guard_agent.logging_utils</code>. The signature changed from <code>async (log_level: str)</code> to <code>(log_file: str | None, log_format: str, *, reconfigure: bool)</code>.</li>
+</ul>
+<h2 id="internal-v2100">Internal (v2.10.0)<a class="headerlink" href="#internal-v2100" title="Permanent link">&para;</a></h2>
+<ul>
+<li>pytest now runs with <code>filterwarnings = ["error"]</code>, so any warning, including one raised at import/collection time, fails the suite instead of passing silently.</li>
+<li>That escalation surfaced a real resource leak: <code>tests/test_adapter_fastapi.py</code>'s <code>SecurityConfig</code> didn't disable Redis, leaving an unclosed async Redis socket to raise a <code>ResourceWarning</code> at a later, unrelated test's garbage collection. Added <code>enable_redis=False</code>, the same fix already applied to <code>test_performance.py</code> in v2.3.0 to eliminate ResourceWarning pollution.</li>
+</ul>
+<hr />
+<h2 id="v291-2026-08-28">v2.9.1 (2026-08-28)<a class="headerlink" href="#v291-2026-08-28" title="Permanent link">&para;</a></h2>
+<h2 id="carry-the-auto-ban-overrides-guard-core-3130-reads-off-dynamicrules-v291">Carry the auto-ban overrides guard-core 3.13.0+ reads off DynamicRules (v2.9.1)<a class="headerlink" href="#carry-the-auto-ban-overrides-guard-core-3130-reads-off-dynamicrules-v291" title="Permanent link">&para;</a></h2>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>DynamicRules</code> now defines <code>auto_ban_threshold</code>, <code>auto_ban_duration</code> and <code>enable_rate_limit_auto_ban</code>.</strong> guard-core 3.13.0 started reading all three during rule application, but this model never declared them (Pydantic default <code>extra=ignore</code> dropped them from the backend payload), so on guard-core 3.13.0 and later every poll ended in <code>Failed to apply dynamic rules: 'DynamicRules' object has no attribute 'enable_rate_limit_auto_ban'</code> and guard-core restored its pre-apply config snapshot, discarding the rest of the push. Reproduced live on guard-core 3.15.0 against a fresh project before any rule was pushed. All three are optional overrides defaulting to <code>None</code>, so guard-core skips them when unset and applies them when the backend sends them (#44).</li>
+<li><strong>The two integer overrides are floored at <code>1</code>.</strong> guard-core's own <code>DynamicRules</code> mirror and its <code>SecurityConfig</code> revalidator reject <code>auto_ban_threshold</code> and <code>auto_ban_duration</code> below <code>1</code>, so a push carrying <code>0</code> would have failed mid-apply and rolled the whole rule back the same way. The floor is enforced at parse time instead.</li>
+</ul>
+<hr />
+<h2 id="v290-2026-08-25">v2.9.0 (2026-08-25)<a class="headerlink" href="#v290-2026-08-25" title="Permanent link">&para;</a></h2>
+<h2 id="carry-guard_core_version-on-telemetry-so-the-saas-can-identify-vulnerable-guard-core-releases-v290">Carry guard_core_version on telemetry so the SaaS can identify vulnerable guard-core releases (v2.9.0)<a class="headerlink" href="#carry-guard_core_version-on-telemetry-so-the-saas-can-identify-vulnerable-guard-core-releases-v290" title="Permanent link">&para;</a></h2>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>AgentConfig</code> and <code>EventBatch</code> now carry <code>guard_core_version</code>, and <code>HTTPTransport</code> sends it on all three send paths.</strong> guard-core 3.13.0 sets <code>guard_core_version</code> to the running <code>guard_core.__version__</code> when it builds the agent config at init, so the SaaS can identify deployments running a vulnerable guard-core release independently of the wrapper's own version. guard-agent 2.8.1 had no such field and silently dropped the value (Pydantic default <code>extra=ignore</code>), so it never reached the platform. The field is now accepted, carried on the two <code>EventBatch</code> constructions and the encrypted-payload dict, and sent alongside <code>guard_version</code>.</li>
+</ul>
+<hr />
+<h2 id="v281-2026-08-09">v2.8.1 (2026-08-09)<a class="headerlink" href="#v281-2026-08-09" title="Permanent link">&para;</a></h2>
+<h2 id="documentation-accuracy-sweep-six-snippets-showed-middleware-that-never-attaches-v281">Documentation accuracy sweep: six snippets showed middleware that never attaches (v2.8.1)<a class="headerlink" href="#documentation-accuracy-sweep-six-snippets-showed-middleware-that-never-attaches-v281" title="Permanent link">&para;</a></h2>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Six documented snippets built a middleware that was never installed.</strong> <code>SecurityMiddleware(app, config=config)</code> constructs the middleware and discards it; only <code>app.add_middleware(SecurityMiddleware, config=config)</code> installs it, which is observable as <code>len(app.user_middleware)</code> staying at zero. This affected <code>docs/tutorial/getting-started.md</code> in three places, including the block labelled "The recommended deployment", plus <code>docs/api/overview.md</code>, <code>docs/installation.md</code>'s configuration-verification script (which printed a success message regardless of whether anything was wired), and <code>examples/basic_usage.py</code>. Anyone copying them ran an application with no security middleware and no telemetry, with nothing to indicate it.</li>
+<li><strong><code>examples/basic_usage.py</code> presented the duplicate-singleton anti-pattern as recommended.</strong> It hand-built an <code>AgentConfig</code> and wired its own lifespan, which creates an agent handler that never receives traffic and leaves the dashboard empty. It now uses the supported path, where <code>SecurityConfig</code>'s <code>agent_*</code> fields drive the agent the middleware itself builds.</li>
+<li><strong><code>buffer_size</code> guidance contradicted itself.</strong> The README showed <code>5000</code> while the in-wheel skill said keep the default of 100. The 256 KiB request body cap is real and enforced server side, and no client side batch count limit exists anywhere in the agent. All surfaces now agree on 100.</li>
+<li><strong>The pydantic plugin mute was described as unconditional.</strong> It is not. An <code>ImportError</code> on <code>guard_agent.models</code> returns silently with nothing logged, all three models share one <code>try</code>/<code>except</code> so a failure on the first leaves the rest unmuted, and it runs once at import with no retry, making a failure permanent for the process. The documentation now states what actually holds, and describes the mute in the README and <code>docs/index.md</code> for the first time.</li>
+<li><strong><code>make lint-docs</code> was scanning almost nothing.</strong> Repeated <code>-e</code> flags do not accumulate in pymarkdownlnt, so every exclusion but the last was silently discarded, and YAML front matter was being misparsed as heading content. Exclusions moved to <code>[tool.pymarkdown.system] exclude_path</code>, with the package directory deliberately left in scope so the shipped in-wheel skill is linted. The gate now exits zero against a real scan.</li>
+<li><strong><code>guard_agent.__version__</code> reported the wrong version.</strong> <code>guard_agent/_version.py</code> was left at <code>2.7.1</code> when 2.8.0 was released, while <code>pyproject.toml</code> said <code>2.8.0</code>. That file is the single source of truth imported by <code>guard_agent.__init__</code>, and it feeds the transport's User-Agent header and <code>EventBatch.agent_version</code>, so telemetry emitted by 2.8.0 identified itself as 2.7.1 to the platform. It is now <code>2.8.1</code>, matching the package metadata.</li>
+<li><strong>Rendered list structure in the troubleshooting and validation sections.</strong> Code fences separated from their list items by a blank line need a four space indent for python-markdown to keep them inside the item; at three spaces each item fractured into its own single-item list with the fence orphaned beside it. Neither pymarkdownlnt nor <code>mkdocs build --strict</code> detects this, so it was verified against the built HTML.</li>
+</ul>
+<h3 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Roughly sixteen further corrections across the README, <code>docs/</code>, the in-wheel skill and the example, each verified against the code as shipped rather than against neighbouring documentation. No runtime behaviour changed in this release.</li>
+</ul>
+<hr />
+<h2 id="v280-2026-08-03">v2.8.0 (2026-08-03)<a class="headerlink" href="#v280-2026-08-03" title="Permanent link">&para;</a></h2>
+<h2 id="split-or-drop-on-413-drop-on-permanent-4xx-standalone-logfire-mute-library-skills-skill-v280">Split-or-drop on 413, drop on permanent 4xx, standalone logfire mute, library-skills skill (v2.8.0)<a class="headerlink" href="#split-or-drop-on-413-drop-on-permanent-4xx-standalone-logfire-mute-library-skills-skill-v280" title="Permanent link">&para;</a></h2>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>413 poison flush loop closed.</strong> The SaaS platform caps request bodies at 256 KiB, so an oversized batch always 413s; guard-agent retried 4xx blindly and requeued the whole batch, producing an infinite serialize+encrypt+POST loop on the event loop. On <code>PayloadTooLargeError</code> the batch is now halved and each half retried recursively; a single item that still 413s is dropped (it will never fit). Permanent 4xx (auth, quota, etc.) drops the whole batch via <code>_drop_permanent_rejection</code> instead of requeuing forever.</li>
+<li><strong>Permanent 4xx no longer trips the circuit breaker.</strong> A permanent 4xx is a healthy server rejecting a payload, not a transient failure. <code>CircuitBreaker.call</code> now re-raises <code>PermanentClientError</code> before the <code>except Exception</code> that increments <code>failure_count</code>. Without this, five consecutive 413s opened the breaker; split halves then hit the plain <code>Exception("Circuit breaker is OPEN")</code>, which <code>_send_with_retry</code> treats as transient, flipping <code>return left and right</code> to <code>False</code> and requeuing the entire original batch forever. The split fix alone did not close the loop; this one-line guard in the shared function fixes every caller.</li>
+</ul>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Standalone logfire mute.</strong> When guard-core is not imported, guard-agent now mutes its own telemetry pydantic models (<code>SecurityEvent</code> / <code>SecurityMetric</code> / <code>EventBatch</code>) at import via pydantic <code>plugin_settings</code>, mirroring guard-core v3.8.1's mute. Closes the standalone-guard-agent edge case where a host's bare <code>instrument_pydantic()</code> emitted guard-event validation spans.</li>
+<li><strong>Library-skills skill</strong> embedded at <code>guard_agent/.agents/skills/guard-agent/SKILL.md</code> so <code>uvx library-skills --claude</code> discovers guard-agent from the installed wheel.</li>
+</ul>
+<h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>examples/basic_usage.py</code> import-path, async-handler, and typing bugs fixed.</li>
+</ul>
+<h3 id="behaviour-changes">Behaviour changes<a class="headerlink" href="#behaviour-changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Oversized batches that 413 are now split and dropped instead of requeued forever; permanent-4xx batches are dropped instead of retried. Callers that relied on infinite requeue will see batches drop (the intended behavior).</li>
+</ul>
+<hr />
+<h2 id="v271-2026-07-30">v2.7.1 (2026-07-30)<a class="headerlink" href="#v271-2026-07-30" title="Permanent link">&para;</a></h2>
+<h2 id="bounded-response-body-logging-and-partial-failure-backoff-v271">Bounded response-body logging and partial-failure backoff (v2.7.1)<a class="headerlink" href="#bounded-response-body-logging-and-partial-failure-backoff-v271" title="Permanent link">&para;</a></h2>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Unbounded response bodies no longer flood logs.</strong> A branded HTML maintenance page served during a 5xx window caused <code>response.text</code> — the full, untruncated body — to be embedded verbatim in exception messages and log lines on every retry, filling a customer's hosting logs with thousands of lines of HTML and inline CSS per request. New <code>summarize_response_body()</code> (<code>guard_agent/utils.py</code>) collapses all whitespace/newlines into a single line and caps the summary at 300 characters with a truncation-plus-original-length indicator, and is now used at every site in <code>HTTPTransport._handle_response</code> where a response body reached a log line or exception message: the non-retryable 4xx path (<code>PermanentClientError</code> detail and its log line), the 5xx path (which now also includes the URL, previously missing), and the generic client-error log path. Status code and URL are always kept in the message.</li>
+<li><strong>A permanently-rejected 200 (e.g. quota exceeded) no longer retries every 30 seconds forever.</strong> The SaaS platform can answer HTTP 200 with <code>success=False</code> for conditions a retry cannot fix (e.g. <code>"Event quota exceeded. Upgrade your plan."</code>), which the existing 4xx <code>PermanentClientError</code> handling does not cover, so the agent re-sent and re-logged the same rejected batch on every flush indefinitely. <code>GuardAgentHandler</code> now tracks consecutive partial failures per data type (events/metrics) and backs off the next attempt with <code>calculate_backoff_delay</code> (capped at 5 minutes), resetting on the first success — no reliance on parsing the error message, so it also covers future rejection reasons. The "failed to send" and "recovered" log lines now fire once per streak transition instead of once per flush. Buffered events/metrics are left untouched during the backoff window — never dropped beyond the buffer's existing overflow policy — and are retried once the backoff elapses.</li>
+</ul>
+<h3 id="internal_1">Internal<a class="headerlink" href="#internal_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Tests added in <code>tests/test_client_backoff.py</code>, <code>tests/test_transport.py</code>, and <code>tests/test_utils.py</code> covering the bounded-body summarizer (short text unchanged, whitespace/newline collapsing, truncation with original length) and the backoff behavior (skips repeat attempts, logs once per transition, resets on success, preserves buffered events/metrics across the backoff window). Full suite at 406 passed / 2 skipped, coverage maintained at 100% line + 100% branch.</li>
+</ul>
+<hr />
+<h2 id="v270-2026-06-23">v2.7.0 (2026-06-23)<a class="headerlink" href="#v270-2026-06-23" title="Permanent link">&para;</a></h2>
+<h2 id="observable-transport-errors-and-documented-protocols-v270">Observable transport errors and documented Protocols (v2.7.0)<a class="headerlink" href="#observable-transport-errors-and-documented-protocols-v270" title="Permanent link">&para;</a></h2>
+<h3 id="added_3">Added<a class="headerlink" href="#added_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>AgentConfig.on_error</code> hook for observable delivery failures.</strong> New optional <code>on_error: Callable[[str, BaseException, dict[str, Any]], None]</code>. <code>HTTPTransport</code> fires it at the real failure points — serialization/encryption (<code>stage="encryption"</code>), unencrypted serialization and delivery (<code>stage="transport_send"</code>), on a permanent client error, and after retry exhaustion — so a host can observe that telemetry could not be shipped. The hook is best-effort and guaranteed never to propagate into the send path: a hook that raises is caught and logged, never destabilizing the application.</li>
+</ul>
+<h3 id="documentation_1">Documentation<a class="headerlink" href="#documentation_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Documented the integrator-facing Protocols.</strong> <code>RedisHandlerProtocol</code>, <code>TransportProtocol</code>, <code>BufferProtocol</code>, and <code>AgentHandlerProtocol</code> upgraded from thin one-line class docstrings to WHAT/WHEN/HOW class contracts plus a per-method docstring on every method, documenting the previously implicit semantics: <code>send_*</code> returns <code>bool</code> meaning <em>accepted</em> (caller requeues on <code>False</code>), <code>None</code>-on-miss for reads, the buffer's drain → confirm-on-success / requeue-on-failure at-least-once handshake, and TTL in seconds. Docstrings only — no signature, name, or <code>@runtime_checkable</code> change.</li>
+</ul>
+<h3 id="internal_2">Internal<a class="headerlink" href="#internal_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Refactored <code>_send_with_retry</code> / <code>_handle_response</code> into smaller helpers (<code>_evaluate_send_result</code>, <code>_sleep_or_record_giveup</code>, <code>_handle_200</code>) to satisfy the complexity gate, and enabled branch coverage. Behavior-preserving.</li>
+</ul>
+<hr />
+<h2 id="v260-2026-05-12">v2.6.0 (2026-05-12)<a class="headerlink" href="#v260-2026-05-12" title="Permanent link">&para;</a></h2>
+<h2 id="configurable-rules-and-status-loop-intervals-v260">Configurable rules and status loop intervals (v2.6.0)<a class="headerlink" href="#configurable-rules-and-status-loop-intervals-v260" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Added</strong> — <code>AgentConfig.dynamic_rule_interval: int</code> (default 300, ge=60) — interval in seconds between dynamic rule polls.</li>
+<li><strong>Added</strong> — <code>AgentConfig.status_interval: int</code> (default 300, ge=60) — interval in seconds between agent status reports.</li>
+<li><strong>Changed</strong> — <code>_rules_loop</code> now sleeps <code>self.config.dynamic_rule_interval</code> instead of a hardcoded <code>300</code>. <code>_status_loop</code> now sleeps <code>self.config.status_interval</code> instead of a hardcoded <code>300</code>. Both loops were previously ignoring any caller-configured value, so <code>SecurityConfig.dynamic_rule_interval</code> (and the new <code>SecurityConfig.agent_status_interval</code> in guard-core &gt;= 3.1.0) had no effect on the agent's poll cadence. The fields are now honored end-to-end.</li>
+<li>Tests added in <code>tests/test_loop_intervals.py</code> covering field defaults, persistence, lower-bound rejection (<code>ge=60</code>), and end-to-end assertions that both loops invoke <code>asyncio.sleep</code> with the configured value.</li>
+</ul>
+<hr />
+<h2 id="v250-2026-05-06">v2.5.0 (2026-05-06)<a class="headerlink" href="#v250-2026-05-06" title="Permanent link">&para;</a></h2>
+<h2 id="install-id-fingerprinting-and-optional-hmac-payload-signing-v250">Install ID fingerprinting and optional HMAC payload signing (v2.5.0)<a class="headerlink" href="#install-id-fingerprinting-and-optional-hmac-payload-signing-v250" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Added</strong> — Persistent install ID. Each agent process now resolves a stable UUID per installation (default storage at <code>~/.guard-agent/install-id</code>, override via <code>AgentConfig.install_id</code>), sent on every request as <code>X-Agent-Install-Id</code>. The server uses this to detect when a single API key is being used from many distinct installs (a signal that the key has leaked or is being shared across hosts). Auto-creates the file on first call; OSError on read or write is logged via <code>logger.exception</code> and falls through to a fresh UUID rather than failing the start-up. New module: <code>guard_agent.install_id</code> exposing <code>resolve_install_id(*, state_path, override)</code>.</li>
+<li><strong>Added</strong> — Opt-in HMAC-SHA256 payload signing. When <code>AgentConfig.payload_signing_secret</code> is set, every outbound request carries <code>X-Payload-Signature: v1=&lt;hex&gt;</code> computed over the exact bytes that go on the wire — post-gzip and post-encryption — so the server can verify integrity against <code>request.body()</code> without re-decoding. No header is sent when the secret is unset, preserving the existing default behavior. New module: <code>guard_agent.signing</code> exposing <code>sign_payload(body, *, secret)</code>.</li>
+<li><strong>Added</strong> — Two new fields on <code>AgentConfig</code>: <code>install_id: str | None</code> (override the auto-resolved install ID) and <code>payload_signing_secret: str | None</code> (HMAC secret; both default to <code>None</code>).</li>
+<li><strong>Changed</strong> — Transport sets the install-ID header once on the cached <code>httpx.AsyncClient</code> default headers (applies to every request) and computes the signature per-request inside both encrypted and unencrypted send paths.</li>
+<li>Tests added for both modules, full suite at 363 passed / 2 skipped.</li>
+</ul>
+<hr />
+<h2 id="v241-2026-04-29">v2.4.1 (2026-04-29)<a class="headerlink" href="#v241-2026-04-29" title="Permanent link">&para;</a></h2>
+<h2 id="diagnostic-friendly-transport-error-logging-v241">Diagnostic-friendly transport error logging (v2.4.1)<a class="headerlink" href="#diagnostic-friendly-transport-error-logging-v241" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Fixed</strong> — <code>HTTPTransport._log_request_error</code> now formats the captured exception as <code>&lt;ClassName&gt;: &lt;repr&gt;</code> instead of <code>str(exc)</code>. Several httpx exception classes raised on transport-level connection drops (<code>RemoteProtocolError</code>, <code>WriteError</code>, some <code>httpcore</code> wrappers) carry no message body, so <code>str(exc)</code> rendered empty and the previous error line was <code>HTTP client error for POST &lt;url&gt;:</code> with no diagnostic suffix. Operators chasing a CloudFlare/origin RST storm could not tell which httpx class actually fired without attaching a debugger. The new format always shows the class identity even when the message is empty, e.g. <code>HTTP client error for POST https://example/api/v1/events/encrypted: RemoteProtocolError: RemoteProtocolError('')</code>. No behavior change beyond log accuracy. Coverage on <code>guard_agent/transport.py</code> maintained at 100% line + 100% branch.</li>
+</ul>
+<hr />
+<h2 id="v240-2026-04-29">v2.4.0 (2026-04-29)<a class="headerlink" href="#v240-2026-04-29" title="Permanent link">&para;</a></h2>
+<h2 id="per-event-idempotency-keys-configurable-overflow-policy-and-framework-version-reporting-v240">Per-event idempotency keys, configurable overflow policy, and framework-version reporting (v2.4.0)<a class="headerlink" href="#per-event-idempotency-keys-configurable-overflow-policy-and-framework-version-reporting-v240" title="Permanent link">&para;</a></h2>
+<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>SecurityEvent.idempotency_key: UUID</code></strong> — every emitted event now carries a stable per-event identifier (default <code>uuid4()</code> via <code>default_factory</code>). Combined with the existing batch-stable <code>batch_id</code>, this lets the SaaS dedup at the event level when an ACK is lost mid-batch and the batch is retried. The field is named <code>idempotency_key</code>, not <code>event_id</code>, to avoid collision with the SaaS API's existing <code>event_id</code> (the prefixed external id, e.g. <code>evt_abc123</code>). Backward-compatible: callers that don't set the field automatically get a generated one.</li>
+<li><strong><code>AgentConfig.guard_version: str | None</code></strong> — new optional config field set by the framework adapter (e.g. fastapi-guard middleware) at agent init time, identifying the wrapper package's version. Default <code>None</code> for callers that construct <code>AgentConfig</code> directly without going through a framework wrapper. Framework adapters should set <code>config.guard_version = framework_package.__version__</code> immediately before passing the config to <code>GuardAgentHandler</code>.</li>
+<li><strong><code>EventBatch.guard_version: str | None</code></strong> — propagated through the wire payload on both the plaintext (<code>/api/v1/events</code>, <code>/api/v1/metrics</code>) and encrypted (<code>/api/v1/events/encrypted</code>) ingestion paths. Sourced from <code>AgentConfig.guard_version</code>. The SaaS persists this on the project record so analytics can attribute telemetry to the wrapper version, not just the agent version. Without this field the SaaS could only see <code>agent_version</code> (guard-agent's own version) and had no way to know which middleware version the customer was running.</li>
+<li><strong><code>encryption._default_json_handler</code></strong> now serializes <code>UUID</code> values to their string form alongside the existing <code>datetime</code> → <code>isoformat()</code> branch. Required for the encrypted-payload path to handle events carrying the new <code>idempotency_key</code>.</li>
+<li><strong><code>AgentConfig.buffer_overflow_policy: Literal["drop", "block", "raise"] = "drop"</code></strong> — operators can now choose how the in-memory event/metric buffer behaves at capacity:</li>
+<li><code>drop</code> (default) — silent eviction of the oldest entry; preserves prior behavior verbatim. Production-safe for high-throughput; loses events when the SaaS is unreachable.</li>
+<li><code>block</code> — backpressures the caller until a flush frees space. Appropriate when event integrity is critical. Use only when <code>start_auto_flush</code> is wired or a flush callback is in place; otherwise <code>clear_buffer</code> is the manual escape hatch.</li>
+<li><code>raise</code> — <code>BufferFullError</code> propagates to the caller. Appropriate for tests or strict environments where dropping events is unacceptable.</li>
+<li><strong><code>BufferFullError(GuardAgentError)</code></strong> exception class added in <code>guard_agent.exceptions</code> and re-exported from the top-level <code>guard_agent</code> module.</li>
+</ul>
+<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>HTTPTransport._make_request</code> was logging the wrong URL on POST failures.</strong> When encryption was enabled, the actual request hit <code>/api/v1/events/encrypted</code> but the error log printed the unencrypted endpoint string (<code>url = f"{endpoint}{plain_path}"</code>). Operators chasing down 503s and decrypt errors saw <code>POST .../api/v1/events</code> in their logs even though the wire request went to <code>/api/v1/events/encrypted</code>. Fix: compute the actual posted URL (encrypted vs plain) up-front and pass that to <code>_log_request_error</code>. No behavior change beyond log accuracy.</li>
+</ul>
+<h3 id="compatibility">Compatibility<a class="headerlink" href="#compatibility" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Default behavior unchanged for callers that don't opt into either feature: <code>idempotency_key</code> has a <code>default_factory</code>, and <code>buffer_overflow_policy</code> defaults to <code>"drop"</code> (which preserves prior eviction semantics including the silent-overflow counter and warning-every-100th log).</li>
+<li>SaaS-side coordination: this release is paired with the SaaS dedup work that ships the <code>idempotency_key</code> column on <code>security_events</code>, the unique constraint, and the <code>pg_insert ... on_conflict_do_nothing</code> ingest path. SaaS deployments that don't yet recognize the field treat it as an unknown column and silently drop the bytes — no behavior change to those callers.</li>
+</ul>
+<hr />
+<h2 id="v230-2026-04-26">v2.3.0 (2026-04-26)<a class="headerlink" href="#v230-2026-04-26" title="Permanent link">&para;</a></h2>
+<h2 id="production-safety-v230">Production Safety (v2.3.0)<a class="headerlink" href="#production-safety-v230" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Fork-safe <code>GuardAgentHandler</code> singleton.</strong> Class-level <code>_instance</code> survived <code>os.fork()</code>, so Gunicorn pre-fork workers all inherited a stale <code>_initialized=True</code> flag and dead asyncio task handles from the parent loop. Calling <code>start()</code> in the child was a silent no-op and the child never connected to the agent endpoint. Register an <code>os.register_at_fork(after_in_child=...)</code> hook that resets <code>_initialized</code> and clears inherited task references. Add a per-call PID guard for non-fork-aware multiprocessing setups. Companion fix to the transport-level fork-safety shipped in 2.2.0.</li>
+<li><strong>Real watermark-driven early flush.</strong> <code>EventBuffer._flush_if_needed</code> was previously a no-op marker — bursts that filled the buffer continued dropping events for the entire flush_interval window even though the early-flush task was scheduled. Trigger a real async flush when buffer occupancy exceeds the high-watermark ratio (default 80%). Cap concurrent flushes via an <code>asyncio.Semaphore</code> (default 1) to prevent runaway parallel sends under sustained pressure. New <code>AgentConfig</code> fields: <code>high_watermark_ratio: float = 0.8</code>, <code>max_concurrent_flushes: int = 1</code>. <code>EventBuffer.stop_auto_flush()</code> now awaits in-flight watermark-triggered flushes before returning, eliminating data loss on shutdown.</li>
+<li><strong>Hard-fail on encryption init.</strong> When the <code>project_encryption_key</code> round-trip failed at startup, transport logged a warning and proceeded with plaintext over the wire. Operators got no signal stronger than a log line and could ship traffic encrypted in the dashboard's mind but not on the network. Now raises <code>EncryptionConfigError</code> on any startup encryption failure. No plaintext fallback. Operators get a loud failure they can react to.</li>
+</ul>
+<h2 id="internal-v230">Internal (v2.3.0)<a class="headerlink" href="#internal-v230" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Test coverage maintained at <strong>100%</strong> line + branch across <code>guard_agent/buffer.py</code>, <code>client.py</code>, <code>encryption.py</code>, <code>models.py</code>, <code>protocols.py</code>, <code>transport.py</code>, <code>utils.py</code> (1135 statements, 0 missed).</li>
+<li>Added test coverage to verify <code>EventBatch.batch_id</code> is stable across retries (the underlying behavior was already correct in 2.2.0 — the new tests pin it down so future refactors can't regress).</li>
+<li>Performance tests (<code>test_agent_performance_impact</code>, <code>test_memory_usage</code>) hardened against coverage-instrumentation noise: <code>gc.collect()</code> before RSS baseline, coverage-aware overhead threshold, <code>enable_redis=False</code> in test apps to eliminate ResourceWarning pollution.</li>
+<li>Fixed pre-existing typing gaps in test mocks; all resolved at the root without any suppression directives.</li>
+</ul>
+<hr />
+<h2 id="v220-2026-04-25">v2.2.0 (2026-04-25)<a class="headerlink" href="#v220-2026-04-25" title="Permanent link">&para;</a></h2>
+<h2 id="production-safety-v220">Production Safety (v2.2.0)<a class="headerlink" href="#production-safety-v220" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Fork-safe transport.</strong> <code>HTTPTransport.__init__</code> registers an <code>os.register_at_fork(after_in_child=...)</code> hook that resets the inherited <code>httpx.AsyncClient</code>, <code>CircuitBreaker</code>, and <code>RateLimiter</code> in every forked child. A pid-drift check runs on every send so spawn-style workers (uvicorn <code>--workers</code> without <code>--preload</code>) get the same protection. Fixes a class of bugs where Gunicorn <code>--preload</code> workers would corrupt the shared socket between parent and child.</li>
+<li><strong>Observable buffer drops.</strong> <code>EventBuffer</code> now exposes <code>events_dropped</code> and <code>metrics_dropped</code> counters via <code>get_stats()</code>. The first drop and every 100th drop log a <code>WARN</code>. Previously the deque silently evicted the oldest event when full.</li>
+<li><strong>Honor server <code>Retry-After</code>.</strong> A 429 response now raises <code>RateLimitedError(retry_after_seconds=...)</code>, and <code>_send_with_retry</code> / <code>_get_with_retry</code> sleep that exact value (capped at 300s) instead of falling back to client-side exponential backoff. Prevents the agent from hammering an already-overloaded SaaS.</li>
+<li><strong>Persist-confirm Redis recovery.</strong> Redis persist keys are now <code>event_{ns}_{uuid8}</code> / <code>metric_{ns}_{uuid8}</code> so two events arriving in the same millisecond no longer collide. Deletion happens only after the transport confirms via the new <code>confirm_event_redis_keys</code> / <code>confirm_metric_redis_keys</code> helpers, and <code>requeue_events_in_memory</code> / <code>requeue_metrics_in_memory</code> push unsent events back to the front of the buffer on transport failure. Previously a transport failure cleared both deque and Redis simultaneously, dropping the events permanently.</li>
+<li><strong><code>BufferProtocol</code> adds new methods.</strong> <code>flush_events_with_keys</code>, <code>flush_metrics_with_keys</code>, <code>confirm_event_redis_keys</code>, <code>confirm_metric_redis_keys</code>, <code>requeue_events_in_memory</code>, <code>requeue_metrics_in_memory</code>. Custom buffer implementations need to implement these or fall back to the bundled <code>EventBuffer</code>.</li>
+</ul>
+<h2 id="compression-v220">Compression (v2.2.0)<a class="headerlink" href="#compression-v220" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Gzip compression of outgoing batch bodies</strong> above <code>compression_threshold</code> (default 1024 bytes). When the body exceeds the threshold the agent compresses with gzip and sends <code>Content-Encoding: gzip</code>; the Guard Core SaaS decompresses request bodies via its <code>GzipRequestMiddleware</code> before pydantic validation. Smaller bodies skip compression and ship as plain JSON.</li>
+<li><strong>Default is ON.</strong> <code>AgentConfig.compression_enabled=True</code>. Set <code>compression_enabled=False</code> if you are pointing the agent at an ingestion endpoint that does not handle <code>Content-Encoding: gzip</code> request bodies (e.g. a custom backend without a decompression middleware).</li>
+<li><code>EventBatch.compressed</code> field now reflects whether the body was actually compressed.</li>
+</ul>
+<h2 id="versioning-hygiene-v220">Versioning hygiene (v2.2.0)<a class="headerlink" href="#versioning-hygiene-v220" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>agent_version</code> in HTTP request headers (<code>User-Agent</code>) and batch payloads now derives from <code>guard_agent.__version__</code> instead of the hardcoded <code>"1.1.0"</code> string the previous releases were sending. SaaS-side analytics that key off <code>agent_version</code> will now see the real installed version.</li>
+</ul>
+<h2 id="test-coverage-v220">Test coverage (v2.2.0)<a class="headerlink" href="#test-coverage-v220" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Test coverage raised to <strong>100%</strong> across <code>guard_agent/buffer.py</code>, <code>client.py</code>, <code>encryption.py</code>, <code>models.py</code>, <code>protocols.py</code>, <code>transport.py</code>, <code>utils.py</code> (1053 statements, 0 missed). Adds the previously-missing branches for the fork-hook unavailable path, the Retry-After exhausted-attempts path, the GET retry-after path, the buffer overflow drop accounting, the empty-key forget paths, the Redis-failure swallowing in <code>confirm_event_redis_keys</code> / <code>confirm_metric_redis_keys</code>, and the <code>requeue_metrics_in_memory</code> end-to-end + overflow-drop paths.</li>
+</ul>
+<hr />
+<h2 id="v210-2026-04-24">v2.1.0 (2026-04-24)<a class="headerlink" href="#v210-2026-04-24" title="Permanent link">&para;</a></h2>
+<h2 id="multi-adapter-coverage-v210">Multi-Adapter Coverage (v2.1.0)<a class="headerlink" href="#multi-adapter-coverage-v210" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Added per-adapter integration smoke tests: <code>tests/test_adapter_fastapi.py</code>, <code>test_adapter_flask.py</code>, <code>test_adapter_django.py</code>. Each verifies <code>SecurityConfig.to_agent_config()</code> roundtrip and request delivery through the adapter's middleware with <code>enable_agent=True</code>.</li>
+<li>Added per-adapter documentation pages under <code>docs/adapters/</code>: FastAPI, Flask, Django, Tornado. Each page covers install, minimal example, and agent wiring specific to that framework.</li>
+<li><code>mkdocs.yml</code> navigation updated with a new top-level <strong>Adapters</strong> section.</li>
+</ul>
+<h2 id="dependency-changes-v210">Dependency Changes (v2.1.0)<a class="headerlink" href="#dependency-changes-v210" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Added <code>django</code>, <code>djapi-guard&gt;=2.0.0</code>, <code>flask</code>, <code>flaskapi-guard&gt;=2.0.0</code>, <code>tornado</code> to <code>[project.optional-dependencies].dev</code> so the test suite can exercise every adapter.</li>
+<li><code>tornadoapi-guard</code> is not yet included in dev extras — it has not been published to PyPI (only a yanked 0.0.1 exists). Integration tests for Tornado are stubbed with <code>pytest.mark.skip</code> in <code>tests/test_adapter_tornado.py</code>. Re-enable once the adapter ships a 1.0.0+ release.</li>
+</ul>
+<hr />
+<h2 id="v200-2026-04-24">v2.0.0 (2026-04-24)<a class="headerlink" href="#v200-2026-04-24" title="Permanent link">&para;</a></h2>
+<h2 id="package-rename-v200">Package Rename (v2.0.0)<a class="headerlink" href="#package-rename-v200" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Renamed on PyPI</strong>: <code>fastapi-guard-agent</code> → <code>guard-agent</code>. The Python import path (<code>from guard_agent import ...</code>) is unchanged — no code changes are required in consuming applications.</li>
+<li>Repositioned as a framework-agnostic telemetry agent serving <code>fastapi-guard</code>, <code>flaskapi-guard</code>, <code>djapi-guard</code>, and <code>tornadoapi-guard</code>.</li>
+<li><strong>Legacy name preserved</strong>: a meta-package <code>fastapi-guard-agent==1.2.0</code> is published alongside this release, whose only dependency is <code>guard-agent&gt;=2.0.0,&lt;3.0.0</code>. Existing <code>pip install fastapi-guard-agent</code> invocations continue to resolve correctly and pull the renamed distribution transitively.</li>
+<li>Repository renamed on GitHub: <code>rennf93/fastapi-guard-agent</code> → <code>rennf93/guard-agent</code>. GitHub auto-redirects the old URLs.</li>
+<li>Documentation site moved to <code>https://rennf93.github.io/guard-agent/</code>.</li>
+</ul>
+<h2 id="dependency-changes-v200">Dependency Changes (v2.0.0)<a class="headerlink" href="#dependency-changes-v200" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Removed <code>fastapi</code> and <code>fastapi-guard</code> from runtime dependencies — the agent is framework-agnostic and speaks HTTP to the dashboard, not to any web framework.</li>
+<li>Runtime deps are now: <code>cryptography</code>, <code>httpx</code>, <code>pydantic</code>, <code>typing-extensions</code>.</li>
+<li><code>fastapi</code> and <code>fastapi-guard</code> remain as dev extras so the existing test suite keeps passing. Each framework adapter brings its own web framework.</li>
+<li>Dropped <code>Framework :: FastAPI</code> classifier; development status promoted from <code>Alpha</code> to <code>Beta</code>.</li>
+</ul>
+<h2 id="breaking-changes-v200">Breaking Changes (v2.0.0)<a class="headerlink" href="#breaking-changes-v200" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>None in Python API</strong> — <code>from guard_agent import ...</code>, <code>GuardAgentHandler</code>, <code>AgentConfig</code>, and every public symbol behave identically.</li>
+<li><strong>Distribution name change only</strong>: scripts, Dockerfiles, and lockfiles that install <code>fastapi-guard-agent</code> directly should migrate to <code>guard-agent</code>. The shim keeps old commands working but new projects should install <code>guard-agent</code> directly.</li>
+</ul>
+<h2 id="migration-guide-v200">Migration Guide (v2.0.0)<a class="headerlink" href="#migration-guide-v200" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Existing code: no changes.</li>
+<li>Install commands (uv): replace <code>uv add fastapi-guard-agent</code> with <code>uv add guard-agent</code> at your leisure — both resolve to the same underlying package.</li>
+<li>Poetry / pip equivalents: <code>poetry add guard-agent</code> / <code>pip install guard-agent</code>.</li>
+<li>Lockfiles: running <code>uv lock</code>, <code>poetry lock</code>, or <code>pip-compile</code> after bumping will transparently update entries to <code>guard-agent</code>.</li>
+</ul>
+<hr />
+<h2 id="v111-2026-03-11">v1.1.1 (2026-03-11)<a class="headerlink" href="#v111-2026-03-11" title="Permanent link">&para;</a></h2>
+<h2 id="bug-fixes-v111">Bug Fixes (v1.1.1)<a class="headerlink" href="#bug-fixes-v111" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Fixed misalignment on documentation headers and model parameters.</li>
+<li>Added support for Python 3.14.</li>
+</ul>
+<h2 id="maintenance-v111">Maintenance (v1.1.1)<a class="headerlink" href="#maintenance-v111" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Code alignment and cleanup.</li>
+</ul>
+<hr />
+<h2 id="v110-2025-10-14">v1.1.0 (2025-10-14)<a class="headerlink" href="#v110-2025-10-14" title="Permanent link">&para;</a></h2>
+<h2 id="new-features-v110">New Features (v1.1.0)<a class="headerlink" href="#new-features-v110" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Added end-to-end payload encryption for secure telemetry transmission using AES-256-GCM.</li>
+<li>Implemented <code>PayloadEncryptor</code> class with project-specific encryption keys.</li>
+<li>Added encrypted endpoint support for events and metrics (<code>/api/v1/events/encrypted</code>).</li>
+<li>Integrated automatic datetime serialization in encrypted payloads via custom JSON handler.</li>
+<li>Added encryption key verification during transport initialization.</li>
+</ul>
+<h2 id="technical-details-v110">Technical Details (v1.1.0)<a class="headerlink" href="#technical-details-v110" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Encryption uses AES-256-GCM with 96-bit nonces and 128-bit authentication tags.</li>
+<li>Pydantic models are serialized using <code>.model_dump(mode="json")</code> before encryption.</li>
+<li>Custom <code>_default_json_handler</code> ensures datetime objects are properly ISO-formatted.</li>
+</ul>
+<hr />
+<h2 id="v102-2025-09-12">v1.0.2 (2025-09-12)<a class="headerlink" href="#v102-2025-09-12" title="Permanent link">&para;</a></h2>
+<h2 id="enhancements-v102">Enhancements (v1.0.2)<a class="headerlink" href="#enhancements-v102" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Added dynamic rule updated event type.</li>
+</ul>
+<hr />
+<h2 id="v101-2025-08-07">v1.0.1 (2025-08-07)<a class="headerlink" href="#v101-2025-08-07" title="Permanent link">&para;</a></h2>
+<h2 id="enhancements-v101">Enhancements (v1.0.1)<a class="headerlink" href="#enhancements-v101" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Added path_excluded event type.</li>
+</ul>
+<hr />
+<h2 id="v100-2025-07-24">v1.0.0 (2025-07-24)<a class="headerlink" href="#v100-2025-07-24" title="Permanent link">&para;</a></h2>
+<h2 id="official-release">Official Release<a class="headerlink" href="#official-release" title="Permanent link">&para;</a></h2>
+<hr />
+<h2 id="v011-2025-07-09">v0.1.1 (2025-07-09)<a class="headerlink" href="#v011-2025-07-09" title="Permanent link">&para;</a></h2>
+<h2 id="enhancements-v011">Enhancements (v0.1.1)<a class="headerlink" href="#enhancements-v011" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Standardized Redis Protocl/Manager methods across libraries.</li>
+</ul>
+<hr />
+<h2 id="v010-2025-07-08">v0.1.0 (2025-07-08)<a class="headerlink" href="#v010-2025-07-08" title="Permanent link">&para;</a></h2>
+<h2 id="enhancements-v010">Enhancements (v0.1.0)<a class="headerlink" href="#enhancements-v010" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Switched from aiohttp to httpx for HTTP client.</li>
+<li>Completed implementation.</li>
+<li>100% test coverage.</li>
+</ul>
+<hr />
+<h2 id="v001-2025-06-22">v0.0.1 (2025-06-22)<a class="headerlink" href="#v001-2025-06-22" title="Permanent link">&para;</a></h2>
+<h2 id="new-features-v001">New Features (v0.0.1)<a class="headerlink" href="#new-features-v001" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Initial release FastAPI Guard Agent.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  <form class="md-feedback" name="feedback" hidden>
+    <fieldset>
+      <legend class="md-feedback__title">
+        Was this page helpful?
+      </legend>
+      <div class="md-feedback__inner">
+        <div class="md-feedback__list">
+          
+            <button class="md-feedback__icon md-icon" type="submit" title="This page was helpful" data-md-value="1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8m2 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10M10 9.5c0 .8-.7 1.5-1.5 1.5S7 10.3 7 9.5 7.7 8 8.5 8s1.5.7 1.5 1.5m7 0c0 .8-.7 1.5-1.5 1.5S14 10.3 14 9.5 14.7 8 15.5 8s1.5.7 1.5 1.5m-5 7.73c-1.75 0-3.29-.73-4.19-1.81L9.23 14c.45.72 1.52 1.23 2.77 1.23s2.32-.51 2.77-1.23l1.42 1.42c-.9 1.08-2.44 1.81-4.19 1.81"/></svg>
+            </button>
+          
+            <button class="md-feedback__icon md-icon" type="submit" title="This page could be improved" data-md-value="0">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8m2 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-6.5-4c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5-1.5-.7-1.5-1.5.7-1.5 1.5-1.5M10 9.5c0 .8-.7 1.5-1.5 1.5S7 10.3 7 9.5 7.7 8 8.5 8s1.5.7 1.5 1.5m2 4.5c1.75 0 3.29.72 4.19 1.81l-1.42 1.42C14.32 16.5 13.25 16 12 16s-2.32.5-2.77 1.23l-1.42-1.42C8.71 14.72 10.25 14 12 14"/></svg>
+            </button>
+          
+        </div>
+        <div class="md-feedback__note">
+          
+            <div data-md-value="1" hidden>
+              
+              
+                
+              
+              
+              
+                
+                
+              
+              Thanks for your feedback!
+            </div>
+          
+            <div data-md-value="0" hidden>
+              
+              
+                
+              
+              
+              
+                
+                
+              
+              Thanks for your feedback! Help us improve by using our <a href="https://github.com/rennf93/guard-agent/issues/new">issue tracker</a>.
+            </div>
+          
+        </div>
+      </div>
+    </fieldset>
+  </form>
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright footer-custom">
+        <a href="https://github.com/rennf93/guard-agent">Guard Agent</a> by
+        <a href="https://github.com/rennf93"> Renzo Franceschini</a>
+        <br>
+        Documentation was built using <a href="https://squidfunk.github.io/mkdocs-material/">MkDocs</a>
+      </div>
+      
+      
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/rennf93/guard-agent" target="_blank" rel="noopener" title="GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://pypi.org/project/guard-agent/" target="_blank" rel="noopener" title="PyPI" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://guard-core.com" target="_blank" rel="noopener" title="guard-core.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://app.guard-core.com" target="_blank" rel="noopener" title="Dashboard (app.guard-core.com)" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 3v6h8V3m-8 18h8V11h-8M3 21h8v-6H3m0-2h8V3H3z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://playground.guard-core.com" target="_blank" rel="noopener" title="Playground (playground.guard-core.com)" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 22a3 3 0 0 1-3-3c0-.6.18-1.16.5-1.63L9 7.81V6a1 1 0 0 1-1-1V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1v1.81l5.5 9.56c.32.47.5 1.03.5 1.63a3 3 0 0 1-3 3zm-1-3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1c0-.21-.07-.41-.18-.57l-2.29-3.96L14 17l-5.07-5.07-3.75 6.5c-.11.16-.18.36-.18.57m8-9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://discord.gg/ZW7ZJbjMkK" target="_blank" rel="noopener" title="Discord" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M492.5 69.8c-.2-.3-.4-.6-.8-.7-38.1-17.5-78.4-30-119.7-37.1-.4-.1-.8 0-1.1.1s-.6.4-.8.8c-5.5 9.9-10.5 20.2-14.9 30.6-44.6-6.8-89.9-6.8-134.4 0-4.5-10.5-9.5-20.7-15.1-30.6-.2-.3-.5-.6-.8-.8s-.7-.2-1.1-.2C162.5 39 122.2 51.5 84.1 69c-.3.1-.6.4-.8.7C7.1 183.5-13.8 294.6-3.6 404.2c0 .3.1.5.2.8s.3.4.5.6c44.4 32.9 94 58 146.8 74.2.4.1.8.1 1.1 0s.7-.4.9-.7c11.3-15.4 21.4-31.8 30-48.8.1-.2.2-.5.2-.8s0-.5-.1-.8-.2-.5-.4-.6-.4-.3-.7-.4c-15.8-6.1-31.2-13.4-45.9-21.9-.3-.2-.5-.4-.7-.6s-.3-.6-.3-.9 0-.6.2-.9.3-.5.6-.7c3.1-2.3 6.2-4.7 9.1-7.1.3-.2.6-.4.9-.4s.7 0 1 .1c96.2 43.9 200.4 43.9 295.5 0 .3-.1.7-.2 1-.2s.7.2.9.4c2.9 2.4 6 4.9 9.1 7.2.2.2.4.4.6.7s.2.6.2.9-.1.6-.3.9-.4.5-.6.6c-14.7 8.6-30 15.9-45.9 21.8-.2.1-.5.2-.7.4s-.3.4-.4.7-.1.5-.1.8.1.5.2.8c8.8 17 18.8 33.3 30 48.8.2.3.6.6.9.7s.8.1 1.1 0c52.9-16.2 102.6-41.3 147.1-74.2.2-.2.4-.4.5-.6s.2-.5.2-.8c12.3-126.8-20.5-236.9-86.9-334.5zm-302 267.7c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.4 59.2-52.8 59.2m195.4 0c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.2 59.2-52.8 59.2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.indexes", "navigation.top", "search.highlight", "search.share", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "json_file": "/guard-agent/versions.json", "provider": "mike", "version_selector": true}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
