@@ -1,5 +1,5 @@
 """
-Guard Agent — framework-agnostic telemetry agent for the Guard ecosystem.
+Guard Agent: framework-agnostic telemetry agent for the Guard ecosystem.
 
 Provides telemetry capabilities for the Guard adapters (``fastapi-guard``,
 ``flaskapi-guard``, ``djangoapi-guard``, ``tornadoapi-guard``), enabling
@@ -14,6 +14,7 @@ from guard_agent._version import __version__
 from guard_agent.buffer import EventBuffer
 from guard_agent.client import GuardAgentHandler, SyncGuardAgentHandler, guard_agent
 from guard_agent.exceptions import BufferFullError, GuardAgentError
+from guard_agent.logging_utils import setup_agent_logging
 from guard_agent.models import (
     AgentConfig,
     AgentStatus,
@@ -36,7 +37,6 @@ from guard_agent.utils import (
     get_current_timestamp,
     hash_ip,
     sanitize_headers,
-    setup_agent_logging,
     truncate_payload,
     validate_config,
 )

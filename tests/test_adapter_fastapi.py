@@ -30,7 +30,6 @@ class TestFastAPIAdapterIntegration:
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
-            exclude_paths=["/"],
         )
         app.add_middleware(SecurityMiddleware, config=config)
 

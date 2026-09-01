@@ -3,6 +3,24 @@ Release Notes
 
 ___
 
+v2.10.0 (2026-09-01)
+-------------------
+
+Agent logs that identify themselves (v2.10.0)
+---------------------------------------------
+
+### Added
+
+- **guard-agent log lines now carry an origin prefix.** `setup_agent_logging` attaches guard-core's standard formatter (`[guard_agent.client] 2026-09-01 12:00:00 - WARNING - ...`) to the `guard_agent` logger tree, so agent records such as `Events flush recovered after N consecutive partial failure(s)` are identifiable in hosted log viewers instead of arriving bare. It runs automatically when a `GuardAgentHandler` or `SyncGuardAgentHandler` is constructed, and the function is exported for explicit host use: `setup_agent_logging(log_file=..., log_format="json")`.
+- **JSON output and an optional file sink.** `log_format="json"` emits `{"timestamp", "level", "logger", "message"}`; `log_file=...` adds a `FileHandler` alongside the console handler. A console handler is only attached when the root logger has no handlers, matching guard-core's yield-to-host contract, so records still reach host-configured logging through propagation.
+
+### Changed
+
+- **The automatic setup is non-destructive: hosts keep their logging configuration.** Constructing the handler attaches at most one console handler, never changes a level the host set, and never removes a host-configured file handler or formatter, no matter how many times the handler is constructed. Hosts reconfigure by calling `setup_agent_logging(...)` explicitly, which re-applies intent (agent handlers are cleared first).
+- **The old async `setup_agent_logging` stub in `guard_agent.utils` is gone.** It was never called and had zero consumers across the ecosystem, and its export now points at the real implementation in `guard_agent.logging_utils`. The signature changed from `async (log_level: str)` to `(log_file: str | None, log_format: str, *, reconfigure: bool)`.
+
+___
+
 v2.9.1 (2026-08-28)
 -------------------
 
