@@ -272,6 +272,7 @@ per_rule_ignores = { "DEP002" = [
     "fastapi-guard",
     "flask",
     "flaskapi-guard",
+    "httpx2",
     "mkdocs",
     "mkdocstrings",
     "mkdocstrings-python",
