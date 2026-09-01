@@ -1,6 +1,6 @@
 [project]
 name = "guard-agent"
-version = "2.9.1"
+version = "2.10.0"
 description = "Framework-agnostic telemetry and monitoring agent for the Guard security ecosystem (fastapi-guard, flaskapi-guard, djangoapi-guard, tornadoapi-guard)"
 authors = [
     {name = "Renzo Franceschini", email = "rennf93@users.noreply.github.com"}
@@ -50,6 +50,7 @@ dev = [
     "flask",
     "flaskapi-guard",
     "httpx",
+    "httpx2",
     "mkdocs",
     "mkdocstrings",
     "mkdocstrings-python",
@@ -130,6 +131,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_default_fixture_loop_scope = "function"
 addopts = "--cov=guard_agent --cov-branch --cov-report=term-missing"
+filterwarnings = ["error"]
 markers = [
     "asyncio: mark tests as async"
 ]
@@ -271,6 +273,7 @@ per_rule_ignores = { "DEP002" = [
     "fastapi-guard",
     "flask",
     "flaskapi-guard",
+    "httpx2",
     "mkdocs",
     "mkdocstrings",
     "mkdocstrings-python",

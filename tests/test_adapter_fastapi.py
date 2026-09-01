@@ -27,10 +27,10 @@ class TestFastAPIAdapterIntegration:
         app = FastAPI()
         config = SecurityConfig(
             enable_agent=True,
+            enable_redis=False,
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
-            exclude_paths=["/"],
         )
         app.add_middleware(SecurityMiddleware, config=config)
 

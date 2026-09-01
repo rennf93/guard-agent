@@ -55,7 +55,7 @@ class TestGuardAgentHandler:
         handler2 = guard_agent(agent_config)
 
         assert handler1 is handler2
-        assert isinstance(handler1, (GuardAgentHandler, SyncGuardAgentHandler))
+        assert isinstance(handler1, GuardAgentHandler | SyncGuardAgentHandler)
 
     @pytest.mark.asyncio
     async def test_initialize_redis(

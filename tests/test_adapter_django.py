@@ -16,7 +16,6 @@ settings.GUARD_SECURITY_CONFIG = SecurityConfig(
     agent_api_key=API_KEY,
     agent_project_id=PROJECT_ID,
     passive_mode=True,
-    exclude_paths=["/"],
 )
 
 

@@ -6,6 +6,7 @@ import time
 from typing import Any, Literal
 
 from guard_agent.buffer import EventBuffer
+from guard_agent.logging_utils import setup_agent_logging
 from guard_agent.models import (
     AgentConfig,
     AgentStatus,
@@ -69,6 +70,8 @@ class GuardAgentHandler(AgentHandlerProtocol):
         cls._instance._rules_task = None
 
     def __init__(self, config: AgentConfig):
+        setup_agent_logging(reconfigure=False)
+
         if hasattr(self, "_initialized") and self._initialized:
             self.config = config
             return
@@ -483,6 +486,8 @@ class SyncGuardAgentHandler:
         return cls._instance
 
     def __init__(self, config: AgentConfig) -> None:
+        setup_agent_logging(reconfigure=False)
+
         if hasattr(self, "_loop"):
             return
         self._inner = GuardAgentHandler(config)

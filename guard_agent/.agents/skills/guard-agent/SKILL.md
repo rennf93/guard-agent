@@ -1,6 +1,6 @@
 ---
 name: guard-agent
-description: guard-agent telemetry client for the Guard security ecosystem. Use when integrating guard-agent with fastapi-guard/flaskapi-guard/djapi-guard/tornadoapi-guard, configuring AgentConfig (buffer_size, flush_interval, retry_attempts, endpoint), wiring Redis persistence, or diagnosing 413 split-or-drop / permanent-rejection / requeue behavior. Also use when a host app calls logfire.instrument_pydantic() and you need to reason about the agent's per-event validation span mute.
+description: guard-agent telemetry client for the Guard security ecosystem. Use when integrating guard-agent with fastapi-guard/flaskapi-guard/djapi-guard/tornadoapi-guard, configuring AgentConfig (buffer_size, flush_interval, retry_attempts, endpoint), wiring Redis persistence, or diagnosing 413 split-or-drop / permanent-rejection / requeue behavior. Also use when configuring guard-agent logging (setup_agent_logging, JSON format, file sink) or when a host app calls logfire.instrument_pydantic() and you need to reason about the agent's per-event validation span mute.
 ---
 
 # guard-agent
@@ -13,6 +13,7 @@ Framework-agnostic telemetry and monitoring agent for the Guard ecosystem. Buffe
 * Buffer/flush config: `buffer_size`, `flush_interval`, `high_watermark_ratio`; keep the buffer small vs the 256 KiB SaaS body cap; see [the buffering reference](references/buffering.md).
 * Redis persistence: `ttl=3600s`, keys retained on failure and deleted only on success; see [the Redis reference](references/redis.md).
 * 413 / permanent rejections: HTTP 413 splits the batch in half and retries each half (or drops a single over-cap item); 400/404/422 are dropped, not requeued; see [the transport reference](references/transport.md).
+* Logging: handler construction configures the `guard_agent` logger non-destructively with prefixed log lines; JSON format and a file sink via explicit `setup_agent_logging()`; see [the logging reference](references/logging.md).
 * logfire mute: the agent mutes its telemetry Pydantic models at import so a host `logfire.instrument_pydantic()` does not emit per-event validation spans; see [the logfire mute reference](references/logfire-mute.md).
 * Config reference: every `AgentConfig` field with defaults; see [the config reference](references/config.md).
 
@@ -42,12 +43,14 @@ Send events/metrics through the handler; do not call the transport directly:
 from guard_agent import SecurityEvent, SecurityMetric
 from datetime import datetime, timezone
 
-await handler.send_event(SecurityEvent(
-    timestamp=datetime.now(timezone.utc),
-    event_type="ip_banned",
-    ip_address="1.2.3.4",
-    action_taken="blocked",
-))
+await handler.send_event(
+    SecurityEvent(
+        timestamp=datetime.now(timezone.utc),
+        event_type="ip_banned",
+        ip_address="1.2.3.4",
+        action_taken="blocked",
+    )
+)
 ```
 
 `send_event` / `send_metric` accept a `SecurityEvent` / `SecurityMetric` or any object with matching attributes (the handler normalizes it).
@@ -72,6 +75,10 @@ When `initialize_redis(redis_handler)` is called, every buffered item is also wr
 
 See [the transport reference](references/transport.md) for the exact return semantics, including the split-batch transient-failure edge case.
 
-## logfire Mute (this release)
+## Logging (this release)
+
+`guard_agent` log lines are identifiable: every record carries an origin prefix (`[guard_agent.client] 2026-09-01 12:00:00 - WARNING - ...`), so messages such as `Events flush recovered after N consecutive partial failure(s)` no longer arrive bare in hosted log viewers. Handler construction configures the logger non-destructively (hosts keep their handlers and levels); explicit `setup_agent_logging(log_file=..., log_format="json")` adds a JSON format and a file sink. See [the logging reference](references/logging.md).
+
+## logfire Mute
 
 `SecurityEvent`, `SecurityMetric`, and `EventBatch` are validated per request and `EventBatch` re-validates every buffered event on each flush. A host app that calls `logfire.instrument_pydantic()` would otherwise emit a span per security event. At import time, guard-agent sets `model_config["plugin_settings"]["logfire"] = {"record": "off"}` on each of those three models and force-rebuilds them. This works without logfire installed and is idempotent (guard-core applies the same mute to the same models at its import; re-applying is harmless). See [the logfire mute reference](references/logfire-mute.md).

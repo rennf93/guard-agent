@@ -46,7 +46,6 @@ class TestFlaskAdapterIntegration:
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
-            exclude_paths=["/"],
         )
         FlaskAPIGuard(app, config=config)
 
@@ -88,7 +87,6 @@ class TestFlaskAdapterIntegration:
             agent_api_key=self.API_KEY,
             agent_project_id=self.PROJECT_ID,
             passive_mode=True,
-            exclude_paths=["/"],
         )
         guard = FlaskAPIGuard()
         app = Flask(__name__)

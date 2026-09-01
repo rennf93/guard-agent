@@ -1,5 +1,4 @@
 import json
-import logging
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
@@ -20,7 +19,6 @@ from guard_agent.utils import (
     safe_json_deserialize,
     safe_json_serialize,
     sanitize_headers,
-    setup_agent_logging,
     summarize_response_body,
     truncate_payload,
     validate_config,
@@ -338,25 +336,6 @@ class TestUtils:
 
         errors = validate_config(config)
         assert "endpoint must be a valid HTTP/HTTPS URL" in errors
-
-    @pytest.mark.asyncio
-    async def test_setup_agent_logging(self) -> None:
-        # Ensure handlers are cleared before test to avoid interference
-        logging.getLogger("guard_agent").handlers = []
-
-        logger = await setup_agent_logging(log_level="DEBUG")
-        assert isinstance(logger, logging.Logger)
-        assert logger.name == "guard_agent"
-        assert logger.level == logging.DEBUG
-        assert len(logger.handlers) == 1
-        assert isinstance(logger.handlers[0], logging.StreamHandler)
-
-        # Test calling again, should not add new handlers
-        logger_again = await setup_agent_logging(log_level="INFO")
-        assert len(logger_again.handlers) == 1
-        assert (
-            logger_again.level == logging.DEBUG
-        )  # Level should remain at the first set level
 
 
 class TestRateLimiter:

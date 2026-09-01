@@ -145,22 +145,6 @@ def validate_config(config: AgentConfig) -> list[str]:
     return errors
 
 
-async def setup_agent_logging(log_level: str = "INFO") -> logging.Logger:
-    """Setup logging for the agent."""
-    logger = logging.getLogger("guard_agent")
-
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
-
-    return logger
-
-
 class RateLimiter:
     """Simple rate limiter for agent operations."""
 

@@ -1,6 +1,7 @@
 import logging
 import subprocess
 import sys
+from typing import Any
 
 import pytest
 
@@ -24,17 +25,17 @@ _STANALONE_CHECK = (
 def test_telemetry_models_muted_after_import() -> None:
     expected = {"record": "off"}
     for model in (SecurityEvent, SecurityMetric, EventBatch):
-        plugin_settings = model.model_config.get("plugin_settings", {})
+        plugin_settings = model.model_config.get("plugin_settings") or {}
         assert plugin_settings.get("logfire") == expected, (
             f"{model.__name__} logfire plugin_settings not muted"
         )
 
 
 def test_mute_survives_rebuild_failure(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    def boom(*args, **kwargs) -> None:
+    def boom(*args: Any, **kwargs: Any) -> None:
         raise RuntimeError("rebuild failed")
 
     monkeypatch.setattr(SecurityEvent, "model_rebuild", boom)
@@ -43,6 +44,12 @@ def test_mute_survives_rebuild_failure(
         guard_agent._mute_pydantic_plugin_instrumentation()
 
     assert "Could not opt guard-agent telemetry models" in caplog.text
+
+
+def test_mute_skips_when_models_unimportable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(sys.modules, "guard_agent.models", None)
+
+    guard_agent._mute_pydantic_plugin_instrumentation()
 
 
 def test_mute_applied_standalone_without_guard_core() -> None:

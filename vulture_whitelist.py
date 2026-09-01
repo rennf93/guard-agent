@@ -25,6 +25,7 @@ filterwarnings  # type: ignore  # pragma: no cover
 pattern  # type: ignore  # pragma: no cover
 request  # type: ignore  # pragma: no cover
 scenario  # type: ignore  # pragma: no cover
+ctx  # type: ignore  # pragma: no cover
 exc_tb  # type: ignore  # pragma: no cover
 exc_type  # type: ignore  # pragma: no cover
 exc_val  # type: ignore  # pragma: no cover
