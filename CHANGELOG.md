@@ -4,7 +4,7 @@ Release Notes
 ___
 
 v2.10.0 (2026-09-01)
--------------------
+--------------------
 
 Agent logs that identify themselves (v2.10.0)
 ---------------------------------------------
@@ -18,6 +18,12 @@ Agent logs that identify themselves (v2.10.0)
 
 - **The automatic setup is non-destructive: hosts keep their logging configuration.** Constructing the handler attaches at most one console handler, never changes a level the host set, and never removes a host-configured file handler or formatter, no matter how many times the handler is constructed. Hosts reconfigure by calling `setup_agent_logging(...)` explicitly, which re-applies intent (agent handlers are cleared first).
 - **The old async `setup_agent_logging` stub in `guard_agent.utils` is gone.** It was never called and had zero consumers across the ecosystem, and its export now points at the real implementation in `guard_agent.logging_utils`. The signature changed from `async (log_level: str)` to `(log_file: str | None, log_format: str, *, reconfigure: bool)`.
+
+Internal (v2.10.0)
+------------------
+
+- pytest now runs with `filterwarnings = ["error"]`, so any warning, including one raised at import/collection time, fails the suite instead of passing silently.
+- That escalation surfaced a real resource leak: `tests/test_adapter_fastapi.py`'s `SecurityConfig` didn't disable Redis, leaving an unclosed async Redis socket to raise a `ResourceWarning` at a later, unrelated test's garbage collection. Added `enable_redis=False`, the same fix already applied to `test_performance.py` in v2.3.0 to eliminate ResourceWarning pollution.
 
 ___
 
@@ -98,7 +104,7 @@ v2.7.1 (2026-07-30)
 -------------------
 
 Bounded response-body logging and partial-failure backoff (v2.7.1)
---------------------------------------------------------------------
+------------------------------------------------------------------
 
 ### Fixed
 
@@ -264,7 +270,7 @@ v2.0.0 (2026-04-24)
 Package Rename (v2.0.0)
 -----------------------
 - **Renamed on PyPI**: `fastapi-guard-agent` → `guard-agent`. The Python import path (`from guard_agent import ...`) is unchanged — no code changes are required in consuming applications.
-- Repositioned as a framework-agnostic telemetry agent serving `fastapi-guard`, `flaskapi-guard`, `djangoapi-guard`, and `tornadoapi-guard`.
+- Repositioned as a framework-agnostic telemetry agent serving `fastapi-guard`, `flaskapi-guard`, `djapi-guard`, and `tornadoapi-guard`.
 - **Legacy name preserved**: a meta-package `fastapi-guard-agent==1.2.0` is published alongside this release, whose only dependency is `guard-agent>=2.0.0,<3.0.0`. Existing `pip install fastapi-guard-agent` invocations continue to resolve correctly and pull the renamed distribution transitively.
 - Repository renamed on GitHub: `rennf93/fastapi-guard-agent` → `rennf93/guard-agent`. GitHub auto-redirects the old URLs.
 - Documentation site moved to `https://rennf93.github.io/guard-agent/`.
@@ -294,7 +300,7 @@ v1.1.1 (2026-03-11)
 -------------------
 
 Bug Fixes (v1.1.1)
--------------------
+------------------
 - Fixed misalignment on documentation headers and model parameters.
 - Added support for Python 3.14.
 
@@ -336,7 +342,7 @@ v1.0.1 (2025-08-07)
 -------------------
 
 Enhancements (v1.0.1)
-------------
+---------------------
 - Added path_excluded event type.
 
 ___
@@ -345,7 +351,7 @@ v1.0.0 (2025-07-24)
 -------------------
 
 Official Release
------------------
+----------------
 
 ___
 
@@ -353,7 +359,7 @@ v0.1.1 (2025-07-09)
 -------------------
 
 Enhancements (v0.1.1)
-------------
+---------------------
 - Standardized Redis Protocl/Manager methods across libraries.
 
 ___
@@ -362,7 +368,7 @@ v0.1.0 (2025-07-08)
 -------------------
 
 Enhancements (v0.1.0)
-------------
+---------------------
 - Switched from aiohttp to httpx for HTTP client.
 - Completed implementation.
 - 100% test coverage.
@@ -373,5 +379,5 @@ v0.0.1 (2025-06-22)
 -------------------
 
 New Features (v0.0.1)
-------------
+---------------------
 - Initial release FastAPI Guard Agent.
