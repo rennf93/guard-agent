@@ -1,3 +1,3 @@
 """Single source of truth for the package version, importable without side-effects."""
 
-__version__ = "2.10.0"
+__version__ = "3.0.0"

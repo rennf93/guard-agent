@@ -41,7 +41,7 @@ async def test_retry_reuses_same_batch_id_for_events(
         return True
 
     with patch.object(transport, "_make_request", side_effect=fake_make_request):
-        with patch("guard_agent.transport.asyncio.sleep", new_callable=AsyncMock):
+        with patch("guard_agent._transport_send.asyncio.sleep", new_callable=AsyncMock):
             result = await transport.send_events(
                 [
                     SecurityEvent(
@@ -84,7 +84,7 @@ async def test_retry_reuses_same_batch_id_for_metrics(
         return True
 
     with patch.object(transport, "_make_request", side_effect=fake_make_request):
-        with patch("guard_agent.transport.asyncio.sleep", new_callable=AsyncMock):
+        with patch("guard_agent._transport_send.asyncio.sleep", new_callable=AsyncMock):
             result = await transport.send_metrics(
                 [
                     SecurityMetric(

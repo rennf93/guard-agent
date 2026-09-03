@@ -1,7 +1,8 @@
 import asyncio
+import json
 from collections.abc import Generator
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -118,6 +119,120 @@ class TestGuardAgentHandler:
 
         await handler.send_event(event)
         assert "Failed to buffer event: Buffer is full" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_send_event_redacts_sensitive_headers_before_transport(
+        self, agent_config: AgentConfig, mock_client: AsyncMock
+    ) -> None:
+        """Sensitive metadata is redacted before it reaches the transport wire."""
+        agent_config.sensitive_headers = [
+            "authorization",
+            "cookie",
+            "x-api-key",
+            "x-custom-secret",
+        ]
+        handler = GuardAgentHandler(agent_config)
+        handler.transport._client = mock_client
+        event = SecurityEvent(
+            timestamp=datetime.now(timezone.utc),
+            event_type="ip_banned",
+            ip_address="192.168.1.1",
+            action_taken="banned",
+            reason="test",
+            metadata={
+                "Authorization": "Bearer super-secret-token",
+                "Cookie": "session=super-secret-session",
+                "X-API-Key": "super-secret-key",
+                "X-Custom-Secret": "super-secret-custom",
+                "User-Agent": "Mozilla/5.0",
+            },
+        )
+
+        await handler.send_event(event)
+        await handler.flush_buffer()
+
+        body = mock_client.post.call_args.kwargs["content"]
+        payload = json.loads(body)
+        metadata = payload["events"][0]["metadata"]
+        assert metadata["Authorization"] == "[REDACTED]"
+        assert metadata["Cookie"] == "[REDACTED]"
+        assert metadata["X-API-Key"] == "[REDACTED]"
+        assert metadata["X-Custom-Secret"] == "[REDACTED]"
+        assert metadata["User-Agent"] == "Mozilla/5.0"
+        assert "super-secret" not in body.decode()
+
+    @pytest.mark.asyncio
+    async def test_send_event_redacts_before_persisting_to_redis(
+        self, agent_config: AgentConfig, mock_redis_handler: AsyncMock
+    ) -> None:
+        """Sensitive metadata never reaches Redis in cleartext (C15)."""
+        agent_config.sensitive_headers = ["authorization"]
+        handler = GuardAgentHandler(agent_config)
+        await handler.initialize_redis(mock_redis_handler)
+        event = SecurityEvent(
+            timestamp=datetime.now(timezone.utc),
+            event_type="ip_banned",
+            ip_address="192.168.1.1",
+            action_taken="banned",
+            reason="test",
+            metadata={"Authorization": "Bearer super-secret-token"},
+        )
+
+        await handler.send_event(event)
+
+        mock_redis_handler.set_key.assert_awaited_once()
+        stored_value = mock_redis_handler.set_key.call_args.args[2]
+        assert "super-secret-token" not in stored_value
+        assert "[REDACTED]" in stored_value
+        assert event.metadata["Authorization"] == "Bearer super-secret-token"
+
+    @pytest.mark.asyncio
+    async def test_send_metric_redacts_before_persisting_to_redis(
+        self, agent_config: AgentConfig, mock_redis_handler: AsyncMock
+    ) -> None:
+        """Sensitive tags never reach Redis in cleartext (C15)."""
+        agent_config.sensitive_headers = ["authorization"]
+        handler = GuardAgentHandler(agent_config)
+        await handler.initialize_redis(mock_redis_handler)
+        metric = SecurityMetric(
+            timestamp=datetime.now(timezone.utc),
+            metric_type="request_count",
+            value=1.0,
+            tags={"Authorization": "Bearer super-secret-token"},
+        )
+
+        await handler.send_metric(metric)
+
+        mock_redis_handler.set_key.assert_awaited_once()
+        stored_value = mock_redis_handler.set_key.call_args.args[2]
+        assert "super-secret-token" not in stored_value
+        assert "[REDACTED]" in stored_value
+        assert metric.tags["Authorization"] == "Bearer super-secret-token"
+
+    @pytest.mark.asyncio
+    async def test_send_event_with_non_string_metadata_key_is_redacted_not_dropped(
+        self, agent_config: AgentConfig
+    ) -> None:
+        """C18: a non-string metadata key must not make the redactor raise
+        and must not make ingest drop the whole event."""
+        agent_config.sensitive_headers = ["authorization"]
+        handler = GuardAgentHandler(agent_config)
+        event = SecurityEvent(
+            timestamp=datetime.now(timezone.utc),
+            event_type="ip_banned",
+            ip_address="192.168.1.1",
+            action_taken="banned",
+            reason="test",
+            metadata={"authorization": "Bearer super-secret-token"},
+        )
+        cast(dict, event.metadata)[42] = "keep-me"
+
+        await handler.send_event(event)
+
+        assert len(handler.buffer.event_buffer) == 1
+        buffered = handler.buffer.event_buffer[0]
+        assert buffered.metadata["authorization"] == "[REDACTED]"
+        assert cast(dict, buffered.metadata)[42] == "keep-me"
 
     @pytest.mark.asyncio
     async def test_send_metric(self, agent_config: AgentConfig) -> None:
@@ -368,8 +483,8 @@ class TestGuardAgentHandler:
         """Test buffer flush when sending events/metrics fails."""
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
-        handler.buffer.requeue_events_in_memory = MagicMock()
-        handler.buffer.requeue_metrics_in_memory = MagicMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
+        handler.buffer.requeue_metrics_in_memory = AsyncMock(return_value=[])
         handler.transport = AsyncMock()
 
         test_events = [MagicMock()]
@@ -391,6 +506,35 @@ class TestGuardAgentHandler:
         )
         handler.buffer.requeue_metrics_in_memory.assert_called_once_with(
             test_metrics, ["mk"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_flush_buffer_confirms_keys_evicted_during_requeue(
+        self, agent_config: AgentConfig
+    ) -> None:
+        """C19: requeue can evict tail items to make room for the requeued
+        ones; their Redis keys must be confirmed (deleted), not left
+        dangling as orphaned records."""
+        handler = GuardAgentHandler(agent_config)
+        handler.buffer = AsyncMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=["evicted_ek"])
+        handler.buffer.requeue_metrics_in_memory = AsyncMock(
+            return_value=["evicted_mk"]
+        )
+        handler.transport = AsyncMock()
+
+        test_events = [MagicMock()]
+        test_metrics = [MagicMock()]
+        handler.buffer.flush_events_with_keys.return_value = (test_events, ["ek"])
+        handler.buffer.flush_metrics_with_keys.return_value = (test_metrics, ["mk"])
+        handler.transport.send_events.return_value = False
+        handler.transport.send_metrics.return_value = False
+
+        await handler.flush_buffer()
+
+        handler.buffer.confirm_event_redis_keys.assert_awaited_once_with(["evicted_ek"])
+        handler.buffer.confirm_metric_redis_keys.assert_awaited_once_with(
+            ["evicted_mk"]
         )
 
     @pytest.mark.asyncio

@@ -25,7 +25,7 @@ class TestPartialFailureBackoff:
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
         handler.transport = AsyncMock()
-        handler.buffer.requeue_events_in_memory = MagicMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_metrics_with_keys.return_value = ([], [])
 
         events = [MagicMock()]
@@ -46,7 +46,7 @@ class TestPartialFailureBackoff:
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
         handler.transport = AsyncMock()
-        handler.buffer.requeue_events_in_memory = MagicMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_metrics_with_keys.return_value = ([], [])
 
         events = [MagicMock()]
@@ -65,7 +65,7 @@ class TestPartialFailureBackoff:
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
         handler.transport = AsyncMock()
-        handler.buffer.requeue_events_in_memory = MagicMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_metrics_with_keys.return_value = ([], [])
 
         events = [MagicMock()]
@@ -92,7 +92,7 @@ class TestPartialFailureBackoff:
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
         handler.transport = AsyncMock()
-        handler.buffer.requeue_events_in_memory = MagicMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_metrics_with_keys.return_value = ([], [])
 
         events = [MagicMock()]
@@ -116,7 +116,7 @@ class TestPartialFailureBackoff:
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
         handler.transport = AsyncMock()
-        handler.buffer.requeue_events_in_memory = MagicMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_metrics_with_keys.return_value = ([], [])
 
         events = [MagicMock()]
@@ -142,7 +142,7 @@ class TestPartialFailureBackoff:
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
         handler.transport = AsyncMock()
-        handler.buffer.requeue_metrics_in_memory = MagicMock()
+        handler.buffer.requeue_metrics_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_events_with_keys.return_value = ([], [])
 
         metrics = [MagicMock()]
@@ -162,7 +162,7 @@ class TestPartialFailureBackoff:
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
         handler.transport = AsyncMock()
-        handler.buffer.requeue_metrics_in_memory = MagicMock()
+        handler.buffer.requeue_metrics_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_events_with_keys.return_value = ([], [])
 
         metrics = [MagicMock()]
@@ -188,7 +188,7 @@ class TestPartialFailureBackoff:
         handler = GuardAgentHandler(agent_config)
         handler.buffer = AsyncMock()
         handler.transport = AsyncMock()
-        handler.buffer.requeue_metrics_in_memory = MagicMock()
+        handler.buffer.requeue_metrics_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_events_with_keys.return_value = ([], [])
 
         metrics = [MagicMock()]

@@ -176,6 +176,75 @@ class TestHTTPTransport:
         assert payload["guard_core_version"] is None
 
     @pytest.mark.asyncio
+    async def test_send_events_redacts_sensitive_headers(
+        self, agent_config: AgentConfig, mock_client: AsyncMock
+    ) -> None:
+        agent_config.sensitive_headers = [
+            "authorization",
+            "cookie",
+            "x-api-key",
+            "x-custom-secret",
+        ]
+        transport = HTTPTransport(agent_config)
+        transport._client = mock_client
+
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="192.168.1.1",
+                action_taken="banned",
+                reason="test",
+                metadata={
+                    "Authorization": "Bearer super-secret-token",
+                    "Cookie": "session=super-secret-session",
+                    "X-API-Key": "super-secret-key",
+                    "X-Custom-Secret": "super-secret-custom",
+                    "User-Agent": "Mozilla/5.0",
+                    "traceparent": "00-trace-id",
+                },
+            )
+        ]
+
+        await transport.send_events(events)
+
+        body = mock_client.post.call_args.kwargs["content"]
+        payload = json.loads(body)
+        metadata = payload["events"][0]["metadata"]
+        assert metadata["Authorization"] == "[REDACTED]"
+        assert metadata["Cookie"] == "[REDACTED]"
+        assert metadata["X-API-Key"] == "[REDACTED]"
+        assert metadata["X-Custom-Secret"] == "[REDACTED]"
+        assert metadata["User-Agent"] == "Mozilla/5.0"
+        assert metadata["traceparent"] == "00-trace-id"
+        assert "super-secret" not in body.decode()
+
+    @pytest.mark.asyncio
+    async def test_send_metrics_redacts_sensitive_headers(
+        self, agent_config: AgentConfig, mock_client: AsyncMock
+    ) -> None:
+        agent_config.sensitive_headers = ["authorization"]
+        transport = HTTPTransport(agent_config)
+        transport._client = mock_client
+
+        metrics = [
+            SecurityMetric(
+                timestamp=datetime.now(timezone.utc),
+                metric_type="request_count",
+                value=1.0,
+                tags={"Authorization": "Bearer super-secret-token", "endpoint": "/x"},
+            )
+        ]
+
+        await transport.send_metrics(metrics)
+
+        body = mock_client.post.call_args.kwargs["content"]
+        payload = json.loads(body)
+        tags = payload["metrics"][0]["tags"]
+        assert tags["Authorization"] == "[REDACTED]"
+        assert tags["endpoint"] == "/x"
+
+    @pytest.mark.asyncio
     async def test_send_events_failure(
         self, agent_config: AgentConfig, mock_client: AsyncMock
     ) -> None:
@@ -1121,7 +1190,7 @@ class TestHTTPTransportEncryption:
         )
 
         with patch(
-            "guard_agent.transport.create_encryptor",
+            "guard_agent._transport_lifecycle.create_encryptor",
             side_effect=EncryptionError("Test error"),
         ):
             with pytest.raises(EncryptionConfigError):
@@ -1461,7 +1530,7 @@ class TestHTTPTransportRetryAfter:
 
         mock_client.post.side_effect = [rate_limited_response, success_response]
 
-        with patch("guard_agent.transport.asyncio.sleep") as mock_sleep:
+        with patch("guard_agent._transport_send.asyncio.sleep") as mock_sleep:
             mock_sleep.return_value = None
             result = await transport._send_with_retry(
                 "/api/v1/events", {"events": []}, "events"
@@ -1491,7 +1560,7 @@ class TestHTTPTransportRetryAfter:
 
         mock_client.post.side_effect = [rate_limited_response, success_response]
 
-        with patch("guard_agent.transport.asyncio.sleep") as mock_sleep:
+        with patch("guard_agent._transport_send.asyncio.sleep") as mock_sleep:
             mock_sleep.return_value = None
             await transport._send_with_retry("/api/v1/events", {"events": []}, "events")
 
@@ -1501,7 +1570,7 @@ class TestHTTPTransportRetryAfter:
     def test_register_fork_hook_no_op_when_register_at_fork_unavailable(
         self, agent_config: AgentConfig
     ) -> None:
-        with patch("guard_agent.transport.os") as mock_os:
+        with patch("guard_agent._transport_lifecycle.os") as mock_os:
             mock_os.getpid.return_value = 4242
             del mock_os.register_at_fork
             HTTPTransport(agent_config)
@@ -1533,7 +1602,7 @@ class TestHTTPTransportRetryAfter:
         ]
 
         before = transport.requests_failed
-        with patch("guard_agent.transport.asyncio.sleep", new_callable=AsyncMock):
+        with patch("guard_agent._transport_send.asyncio.sleep", new_callable=AsyncMock):
             result = await transport._send_with_retry(
                 "/api/v1/events", {"events": []}, "events"
             )
@@ -1563,7 +1632,7 @@ class TestHTTPTransportRetryAfter:
         mock_client.get.side_effect = [rate_limited_response, ok_response]
 
         with patch(
-            "guard_agent.transport.asyncio.sleep", new_callable=AsyncMock
+            "guard_agent._transport_send.asyncio.sleep", new_callable=AsyncMock
         ) as mock_sleep:
             result = await transport._get_with_retry("/api/v1/rules")
 
@@ -1586,7 +1655,7 @@ class TestHTTPTransportRetryAfter:
         mock_client.get.side_effect = [rate_limited_response, rate_limited_response]
 
         before = transport.requests_failed
-        with patch("guard_agent.transport.asyncio.sleep", new_callable=AsyncMock):
+        with patch("guard_agent._transport_send.asyncio.sleep", new_callable=AsyncMock):
             result = await transport._get_with_retry("/api/v1/rules")
 
         assert result is None
