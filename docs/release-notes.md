@@ -3,7 +3,7 @@ Release Notes
 
 ___
 
-v3.0.0 (2026-09-03)
+v3.0.0 (2026-09-04)
 -------------------
 
 Recursive header and metadata redaction, an atomic block-policy buffer, and a maintainability split (v3.0.0)
