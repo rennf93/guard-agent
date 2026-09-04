@@ -128,16 +128,24 @@ class BufferProtocol(Protocol):
         """Permanently drop metric keys after a successful send."""
         ...
 
-    def requeue_events_in_memory(
+    async def requeue_events_in_memory(
         self, events: list[SecurityEvent], keys: list[str]
-    ) -> None:
-        """Return events to the in-memory buffer after a failed send."""
+    ) -> list[str]:
+        """Return events to the in-memory buffer after a failed send.
+
+        Returns the Redis keys of any items evicted to make room, which the
+        caller must confirm (delete) so their records do not orphan.
+        """
         ...
 
-    def requeue_metrics_in_memory(
+    async def requeue_metrics_in_memory(
         self, metrics: list[SecurityMetric], keys: list[str]
-    ) -> None:
-        """Return metrics to the in-memory buffer after a failed send."""
+    ) -> list[str]:
+        """Return metrics to the in-memory buffer after a failed send.
+
+        Returns the Redis keys of any items evicted to make room, which the
+        caller must confirm (delete) so their records do not orphan.
+        """
         ...
 
     async def get_buffer_size(self) -> int:

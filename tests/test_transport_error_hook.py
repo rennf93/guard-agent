@@ -98,7 +98,7 @@ async def test_hook_fires_on_unencrypted_serialization_abort() -> None:
     )
     transport._client = AsyncMock()
     with patch(
-        "guard_agent.transport.safe_json_serialize",
+        "guard_agent._transport_dispatch.safe_json_serialize",
         side_effect=SerializationError("bad"),
     ):
         result = await transport._post_unencrypted("https://example.com/x", {"a": 1})
@@ -117,7 +117,7 @@ async def test_hook_fires_on_encrypted_serialization_abort() -> None:
     )
     transport._client = AsyncMock()
     with patch(
-        "guard_agent.transport.safe_json_serialize",
+        "guard_agent._transport_dispatch.safe_json_serialize",
         side_effect=SerializationError("bad"),
     ):
         result = await transport._post_encrypted({"batch_id": "b", "a": 1})

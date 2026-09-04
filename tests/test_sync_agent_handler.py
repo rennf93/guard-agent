@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import Generator
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from guard_agent.client import GuardAgentHandler, SyncGuardAgentHandler
-from guard_agent.models import AgentConfig, DynamicRules
+from guard_agent.models import AgentConfig, DynamicRules, SecurityEvent
 
 
 @pytest.fixture(autouse=True)
@@ -139,6 +141,39 @@ def test_sync_handler_get_stats(
 
     assert "running" in stats
     assert "events_sent" in stats
+
+
+def test_sync_handler_redacts_sensitive_headers_before_transport(
+    sync_handler: SyncGuardAgentHandler,
+    agent_config: AgentConfig,
+    mock_client: AsyncMock,
+) -> None:
+    agent_config.sensitive_headers = ["authorization", "x-custom-secret"]
+    inner = sync_handler._inner
+    inner.transport._client = mock_client
+    event = SecurityEvent(
+        timestamp=datetime.now(timezone.utc),
+        event_type="ip_banned",
+        ip_address="192.168.1.1",
+        action_taken="banned",
+        reason="test",
+        metadata={
+            "Authorization": "Bearer super-secret-token",
+            "X-Custom-Secret": "super-secret-custom",
+            "User-Agent": "Mozilla/5.0",
+        },
+    )
+
+    sync_handler.send_event(event)
+    sync_handler.flush_buffer()
+
+    body = mock_client.post.call_args.kwargs["content"]
+    payload = json.loads(body)
+    metadata = payload["events"][0]["metadata"]
+    assert metadata["Authorization"] == "[REDACTED]"
+    assert metadata["X-Custom-Secret"] == "[REDACTED]"
+    assert metadata["User-Agent"] == "Mozilla/5.0"
+    assert "super-secret" not in body.decode()
 
 
 def test_sync_handler_stop_thread_already_dead(

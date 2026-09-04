@@ -1,10 +1,14 @@
+import dataclasses
 import hashlib
 import json
 import logging
 import time
 import uuid
-from collections.abc import Callable
-from datetime import datetime, timezone
+from collections.abc import Callable, Mapping, Sequence
+from datetime import date, datetime, timezone
+from datetime import time as time_of_day
+from decimal import Decimal
+from enum import Enum
 from typing import Any
 
 from guard_agent.exceptions import PermanentClientError
@@ -39,17 +43,158 @@ def generate_batch_id() -> str:
     return f"{timestamp}-{random_part}"
 
 
-def sanitize_headers(
-    headers: dict[str, str], sensitive_headers: list[str]
-) -> dict[str, str]:
-    """Remove sensitive headers from telemetry data."""
+_MAX_SANITIZE_DEPTH = 10
+_MAX_JSON_SCAN_LEN = 8192
+_REDACTED = "[REDACTED]"
+_TOO_LARGE_TO_SCAN = object()
+_SCALAR_PASSTHROUGH_TYPES: tuple[type, ...] = (
+    int,
+    float,
+    bool,
+    date,
+    time_of_day,
+    Decimal,
+    uuid.UUID,
+    Enum,
+)
+
+
+def sanitize_headers(headers: Any, sensitive_headers: list[str]) -> Any:
+    """Remove sensitive headers from telemetry data.
+
+    Recurses into nested dicts, lists, tuples, sets, and JSON-looking
+    string values, up to a bounded depth; a subtree deeper than that, or
+    one this cannot safely walk, is redacted wholesale rather than raised.
+    Keys are matched case-insensitively after stripping whitespace. A
+    bytes key is decoded as UTF-8 (replacing invalid bytes) before the
+    match so it cannot bypass detection by stringifying to "b'...'".
+    """
+    lowered = {_normalize_key(h) for h in sensitive_headers}
+    return _sanitize_value(headers, lowered, depth=0)
+
+
+def _normalize_key(key: Any) -> str:
+    if isinstance(key, bytes):
+        return key.decode("utf-8", errors="replace").strip().lower()
+    return str(key).strip().lower()
+
+
+def _is_unclassifiable_bytes_key(key: Any) -> bool:
+    if not isinstance(key, bytes):
+        return False
+    try:
+        key.decode("utf-8")
+    except UnicodeDecodeError:
+        return True
+    return False
+
+
+def _sanitize_value(value: Any, lowered_sensitive: set[str], depth: int) -> Any:
+    try:
+        return _sanitize_value_unsafe(value, lowered_sensitive, depth)
+    except Exception:
+        return _REDACTED
+
+
+def _sanitize_value_unsafe(value: Any, lowered_sensitive: set[str], depth: int) -> Any:
+    if depth > _MAX_SANITIZE_DEPTH:
+        return _REDACTED
+    if isinstance(value, str):
+        return _sanitize_string_value(value, lowered_sensitive, depth)
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, Mapping):
+        return _sanitize_mapping(value, lowered_sensitive, depth)
+    if _is_model_like(value):
+        return _sanitize_mapping(_model_like_to_dict(value), lowered_sensitive, depth)
+    if isinstance(value, (set, frozenset)):
+        return _sanitize_set(value, lowered_sensitive, depth)
+    if isinstance(value, Sequence):
+        return _sanitize_sequence(value, lowered_sensitive, depth)
+    if value is None or isinstance(value, _SCALAR_PASSTHROUGH_TYPES):
+        return value
+    return _REDACTED
+
+
+def _is_model_like(value: Any) -> bool:
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return True
+    return hasattr(value, "model_dump") and callable(value.model_dump)
+
+
+def _model_like_to_dict(value: Any) -> dict[Any, Any]:
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return dataclasses.asdict(value)
+    return dict(value.model_dump())
+
+
+def _sanitize_mapping(
+    value: Mapping[Any, Any], lowered_sensitive: set[str], depth: int
+) -> Any:
     sanitized = {}
-    for key, value in headers.items():
-        if key.lower() in [h.lower() for h in sensitive_headers]:
-            sanitized[key] = "[REDACTED]"
+    for key, item in value.items():
+        if (
+            _is_unclassifiable_bytes_key(key)
+            or _normalize_key(key) in lowered_sensitive
+        ):
+            sanitized[key] = _REDACTED
         else:
-            sanitized[key] = value
-    return sanitized
+            sanitized[key] = _sanitize_value(item, lowered_sensitive, depth + 1)
+    if isinstance(value, dict):
+        return sanitized
+    try:
+        mapping_type: Any = type(value)
+        return mapping_type(sanitized)
+    except Exception:
+        return sanitized
+
+
+def _sanitize_sequence(
+    value: Sequence[Any], lowered_sensitive: set[str], depth: int
+) -> Any:
+    sanitized = [_sanitize_value(item, lowered_sensitive, depth + 1) for item in value]
+    if isinstance(value, list):
+        return sanitized
+    try:
+        sequence_type: Any = type(value)
+        return sequence_type(sanitized)
+    except Exception:
+        return sanitized
+
+
+def _sanitize_set(value: Any, lowered_sensitive: set[str], depth: int) -> Any:
+    sanitized_items = [
+        _sanitize_value(item, lowered_sensitive, depth + 1) for item in value
+    ]
+    try:
+        return type(value)(sanitized_items)
+    except Exception:
+        return _REDACTED
+
+
+def _sanitize_string_value(value: str, lowered_sensitive: set[str], depth: int) -> str:
+    parsed = _parse_json_like(value)
+    if parsed is _TOO_LARGE_TO_SCAN:
+        return _REDACTED
+    if parsed is None:
+        return value
+    sanitized_parsed = _sanitize_value(parsed, lowered_sensitive, depth + 1)
+    try:
+        return json.dumps(sanitized_parsed)
+    except (TypeError, ValueError):
+        return value
+
+
+def _parse_json_like(value: str) -> Any:
+    stripped = value.strip()
+    if not stripped or stripped[0] not in '{["':
+        return None
+    if len(stripped) > _MAX_JSON_SCAN_LEN:
+        return _TOO_LARGE_TO_SCAN
+    try:
+        return json.loads(stripped)
+    except (TypeError, ValueError):
+        return None
 
 
 def truncate_payload(payload: str, max_size: int) -> str:
@@ -82,6 +227,22 @@ def hash_ip(ip: str, salt: str = "") -> str:
 def get_current_timestamp() -> datetime:
     """Get current UTC timestamp."""
     return datetime.now(timezone.utc)
+
+
+def fire_error_hook(
+    on_error: Callable[[str, BaseException, dict[str, Any]], None] | None,
+    logger: logging.Logger,
+    stage: str,
+    exc: BaseException,
+    context: dict[str, Any],
+) -> None:
+    """Invoke the user's on_error callback, if any, without ever raising."""
+    if on_error is None:
+        return
+    try:
+        on_error(stage, exc, context)
+    except Exception as hook_error:
+        logger.error(f"on_error hook raised while handling '{stage}': {hook_error}")
 
 
 def calculate_backoff_delay(

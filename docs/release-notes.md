@@ -3,6 +3,47 @@ Release Notes
 
 ___
 
+v3.0.0 (2026-09-03)
+-------------------
+
+Recursive header and metadata redaction, an atomic block-policy buffer, and a maintainability split (v3.0.0)
+------------------------------------------------------------------------------------------------------------
+
+### Breaking Changes
+
+- **`BufferProtocol.requeue_events_in_memory` and `requeue_metrics_in_memory` are now async.** A failed send's requeue now shares the same lock as every other buffer mutation, so both methods on the protocol (and on `EventBuffer`) must be awaited. A custom `BufferProtocol` implementation needs to change its signatures to `async def`; `GuardAgentHandler`'s own buffer and `FlushMixin` already call them with `await`.
+- **`sanitize_headers` now redacts what it cannot safely classify instead of letting it through.** A JSON-looking string over 8192 characters, a value of a type it does not recognize (a generator, an arbitrary object), and a bytes header key that fails to decode as UTF-8 previously passed through unchanged or matched nothing; all three now become `[REDACTED]`. A payload that relied on that pass-through will see `[REDACTED]` there instead.
+
+### Added
+
+- **`sanitize_headers` recurses into every container and into JSON-looking strings, including a double-encoded JSON string.** Dicts, lists, tuples, sets, frozensets and JSON string bodies are all walked (up to a bounded depth), not just the top-level mapping; a JSON string whose decoded value is itself a JSON string is unwrapped and sanitized too, then re-encoded the same way.
+- **`datetime`, `date`, `time`, `Decimal`, `UUID` and `Enum` values pass through unchanged.** They are legitimate scalar metadata, not unrecognized objects to redact.
+- **A dataclass instance or a pydantic model passed as metadata is walked field by field, like a mapping**, via `dataclasses.asdict` / `model_dump`, instead of being collapsed to `[REDACTED]` wholesale.
+- **The default `sensitive_headers` set now matches guard-core's**: `proxy-authorization` joins `authorization`, `cookie` and `x-api-key`.
+- **`KNOWN_EVENT_TYPES` gained `ip_ban_failed`, `rate_limit_script_reloaded`, `pattern_anomaly_timeout`, `pattern_anomaly_statistical_anomaly` and `route_unresolved`**, aligning with guard-core 4.0.0's event catalogue. A version-gated test skips until the installed `guard_core` reaches 4.0.0 and fails on any other drift once it does.
+- **`tests/test_maintainability_rank.py` enforces radon MI rank A on every module in `guard_agent`.**
+- **`on_error` also fires at the flush boundary** (`stage='flush_events'` / `'flush_metrics'`), once per failed batch, with the exception and `{"batch_size": N}`, through the same `fire_error_hook` helper `HTTPTransport` uses. Previously it only fired inside the transport's own retry paths.
+
+### Fixed
+
+- **A bytes header key no longer bypasses the sensitive-header match.** `b"authorization"` is decoded as UTF-8 before the case-insensitive comparison instead of being stringified to the literal `"b'authorization'"`, which never matched anything.
+- **The event and metric buffers each serialize their overflow-check-and-append, flush, requeue and clear through one `asyncio.Lock`.** Two concurrent `add_event` (or `add_metric`) calls at capacity could previously both evict the same slot, appending past it and orphaning the other call's Redis record; the check and the append are now one atomic step.
+- **The block overflow policy waits on an `asyncio.Condition` bound to that same lock and re-checks at least once every 0.5 seconds.** A requeue after a failed send always keeps its slot (durability over a new writer), and a blocked writer no longer depends solely on an explicit signal that a send-failure backoff (up to 300 seconds) can delay past.
+- **`clear_buffer` now clears the Redis-key maps along with the buffers.** Previously only the deques were cleared, so a later event or metric object could inherit a stale or foreign key once CPython reused its `id()`.
+- **A Redis record is deleted on a requeue eviction and on an overflow drop without racing the buffer it was tracked against.**
+- **The Makefile's `semgrep` target scans `guard_agent` with `--no-git-ignore`**, so a new, not-yet-tracked file is scanned deterministically instead of depending on git state.
+- **A `BaseException` from the transport (an `asyncio.CancelledError`, not an `Exception` subclass) no longer skips the batch's requeue and failure bookkeeping.** `_flush_events`/`_flush_metrics` catch `BaseException`, requeue the popped batch and advance the failure streak and backoff before re-raising, so a cancellation still propagates but never silently drops the batch.
+- **Loading persisted events/metrics from Redis at startup no longer races live `add_event`/`add_metric` traffic.** Each load now runs under its buffer's own condition lock, and forgets the oldest tracked key before its own append would otherwise evict an item past capacity, so a startup load can never orphan a Redis record or corrupt the key map racing a concurrent write.
+
+Internal (v3.0.0)
+-----------------
+
+- `buffer.py`, `client.py` and `transport.py` were split into focused mixins (`_buffer_lifecycle`, `_buffer_overflow`, `_buffer_queue`, `_buffer_redis`; `_client_flush`, `_client_ingest`, `_client_loops`, `_client_status`; `_transport_dispatch`, `_transport_lifecycle`, `_transport_send`), each independently testable and each rank A.
+- `anyio<4.15` and `semgrep` were added to the `dev` extra.
+
+___
+
+
 v2.10.0 (2026-09-01)
 --------------------
 

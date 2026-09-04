@@ -6,9 +6,501 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pytest import LogCaptureFixture
 
+from guard_agent._client_flush import FlushMixin
 from guard_agent.buffer import EventBuffer
 from guard_agent.exceptions import BufferFullError, GuardAgentError
 from guard_agent.models import AgentConfig, SecurityEvent, SecurityMetric
+
+
+class FakeRedisHandler:
+    """Dict-backed Redis double that actually stores and deletes values,
+    for tests that must prove no record is left orphaned."""
+
+    def __init__(self) -> None:
+        self.store: dict[str, str] = {}
+
+    async def get_key(self, namespace: str, key: str) -> str | None:
+        return self.store.get(f"{namespace}:{key}")
+
+    async def set_key(
+        self, namespace: str, key: str, value: str, ttl: int | None = None
+    ) -> bool:
+        self.store[f"{namespace}:{key}"] = value
+        return True
+
+    async def delete(self, namespace: str, key: str) -> int:
+        return 1 if self.store.pop(f"{namespace}:{key}", None) is not None else 0
+
+    async def keys(self, pattern: str) -> list[str]:
+        prefix = pattern.rstrip("*")
+        return [k for k in self.store if k.startswith(prefix)]
+
+    async def initialize(self) -> None:
+        return None
+
+    def get_connection(self) -> None:
+        return None
+
+
+class YieldingFakeRedisHandler(FakeRedisHandler):
+    """FakeRedisHandler whose set/get/delete/keys yield control before
+    completing, reproducing the interleaving window a real Redis
+    round-trip creates."""
+
+    async def set_key(
+        self, namespace: str, key: str, value: str, ttl: int | None = None
+    ) -> bool:
+        await asyncio.sleep(0)
+        return await super().set_key(namespace, key, value, ttl)
+
+    async def get_key(self, namespace: str, key: str) -> str | None:
+        await asyncio.sleep(0)
+        return await super().get_key(namespace, key)
+
+    async def delete(self, namespace: str, key: str) -> int:
+        await asyncio.sleep(0)
+        return await super().delete(namespace, key)
+
+    async def keys(self, pattern: str) -> list[str]:
+        await asyncio.sleep(0)
+        return await super().keys(pattern)
+
+
+def _make_named_event(reason: str) -> SecurityEvent:
+    return SecurityEvent(
+        timestamp=datetime.now(timezone.utc),
+        event_type="ip_banned",
+        ip_address="127.0.0.1",
+        action_taken="block",
+        reason=reason,
+    )
+
+
+def _make_named_metric(value: float) -> SecurityMetric:
+    return SecurityMetric(
+        timestamp=datetime.now(timezone.utc),
+        metric_type="request_count",
+        value=value,
+    )
+
+
+def _assert_key_map_matches_buffer(buffer: EventBuffer) -> None:
+    """C26 invariant: every id tracked in a Redis-key map is an item
+    currently in the matching buffer, and vice versa. Without a Redis
+    handler no id is ever tracked, so both maps must stay empty."""
+    if buffer.redis_handler is None:
+        assert buffer._event_redis_keys == {}
+        assert buffer._metric_redis_keys == {}
+        return
+    event_ids = {id(item) for item in buffer.event_buffer}
+    metric_ids = {id(item) for item in buffer.metric_buffer}
+    assert set(buffer._event_redis_keys) == event_ids
+    assert set(buffer._metric_redis_keys) == metric_ids
+
+
+class _FlushHost(FlushMixin):
+    """Minimal host exercising the real FlushMixin._flush_events /
+    _flush_metrics against a real buffer and a scripted transport."""
+
+    def __init__(self, config: AgentConfig, buffer: EventBuffer, transport: object):
+        import logging
+
+        self.config = config
+        self.logger = logging.getLogger(__name__)
+        self.buffer = buffer
+        self.transport = transport
+        self.events_sent = 0
+        self.metrics_sent = 0
+        self.events_failed = 0
+        self.metrics_failed = 0
+        self._events_failure_streak = 0
+        self._metrics_failure_streak = 0
+        self._events_retry_after = 0.0
+        self._metrics_retry_after = 0.0
+
+
+class TestBufferOverflowConcurrency:
+    """C23: the overflow check-and-append must be atomic with the append,
+    or a concurrent caller can evict an item whose Redis key was never
+    forgotten, orphaning its record."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_add_event_at_capacity_leaves_no_orphaned_key(
+        self,
+    ) -> None:
+        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="drop")
+        buffer = EventBuffer(config)
+        fake_redis = YieldingFakeRedisHandler()
+        await buffer.initialize_redis(fake_redis)
+
+        e1, e2, e3, e4 = (_make_named_event(r) for r in ("e1", "e2", "e3", "e4"))
+        await buffer.add_event(e1)
+        await buffer.add_event(e2)
+
+        await asyncio.gather(buffer.add_event(e3), buffer.add_event(e4))
+
+        assert len(buffer.event_buffer) == 2
+        assert buffer.events_dropped == 2
+
+        tracked_keys = set(buffer._event_redis_keys.values())
+        stored_keys = {
+            k.split(":", 1)[1]
+            for k in fake_redis.store
+            if k.startswith("agent_events:")
+        }
+        assert stored_keys == tracked_keys
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_concurrent_add_metric_at_capacity_leaves_no_orphaned_key(
+        self,
+    ) -> None:
+        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="drop")
+        buffer = EventBuffer(config)
+        fake_redis = YieldingFakeRedisHandler()
+        await buffer.initialize_redis(fake_redis)
+
+        m1, m2, m3, m4 = (_make_named_metric(v) for v in (1.0, 2.0, 3.0, 4.0))
+        await buffer.add_metric(m1)
+        await buffer.add_metric(m2)
+
+        await asyncio.gather(buffer.add_metric(m3), buffer.add_metric(m4))
+
+        assert len(buffer.metric_buffer) == 2
+        assert buffer.metrics_dropped == 2
+
+        tracked_keys = set(buffer._metric_redis_keys.values())
+        stored_keys = {
+            k.split(":", 1)[1]
+            for k in fake_redis.store
+            if k.startswith("agent_metrics:")
+        }
+        assert stored_keys == tracked_keys
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_concurrent_flushes_and_requeue_leave_no_orphaned_keys(
+        self,
+    ) -> None:
+        """Two flush attempts permitted by max_concurrent_flushes=2, one of
+        which fails and requeues, interleaved with a concurrent add_event,
+        must not corrupt the buffer or orphan a tracked Redis key."""
+        config = AgentConfig(
+            api_key="k",
+            buffer_size=3,
+            buffer_overflow_policy="drop",
+            max_concurrent_flushes=2,
+            flush_interval=100,
+            high_watermark_ratio=0.99,
+        )
+        buffer = EventBuffer(config)
+        fake_redis = YieldingFakeRedisHandler()
+        await buffer.initialize_redis(fake_redis)
+
+        e1, e2, e3, e4 = (_make_named_event(r) for r in ("e1", "e2", "e3", "e4"))
+        await buffer.add_event(e1)
+        await buffer.add_event(e2)
+        await buffer.add_event(e3)
+
+        send_attempts = {"n": 0}
+
+        async def flush_once() -> None:
+            events, keys = await buffer.flush_events_with_keys()
+            if not events:
+                return
+            send_attempts["n"] += 1
+            await asyncio.sleep(0)
+            if send_attempts["n"] > 1:
+                await buffer.confirm_event_redis_keys(keys)
+                return
+            evicted = await buffer.requeue_events_in_memory(events, keys)
+            if evicted:
+                await buffer.confirm_event_redis_keys(evicted)
+
+        buffer._flush_callback = flush_once
+        await buffer.start()
+        try:
+            await asyncio.gather(
+                buffer._flush_if_needed(),
+                buffer._flush_if_needed(),
+                buffer.add_event(e4),
+            )
+        finally:
+            await buffer.stop()
+
+        assert len(buffer.event_buffer) <= config.buffer_size
+
+        tracked_keys = set(buffer._event_redis_keys.values())
+        stored_keys = {
+            k.split(":", 1)[1]
+            for k in fake_redis.store
+            if k.startswith("agent_events:")
+        }
+        assert stored_keys == tracked_keys
+        _assert_key_map_matches_buffer(buffer)
+
+
+class TestBufferClearInvariant:
+    """C26: clear_buffer must forget the Redis-key maps too, or a later
+    object can inherit a stale/foreign key once CPython reuses its id()."""
+
+    @pytest.mark.asyncio
+    async def test_clear_buffer_clears_redis_key_maps(
+        self, security_event: SecurityEvent, security_metric: SecurityMetric
+    ) -> None:
+        config = AgentConfig(api_key="k")
+        buffer = EventBuffer(config)
+        fake_redis = FakeRedisHandler()
+        await buffer.initialize_redis(fake_redis)
+
+        await buffer.add_event(security_event)
+        await buffer.add_metric(security_metric)
+        assert buffer._event_redis_keys
+        assert buffer._metric_redis_keys
+
+        await buffer.clear_buffer()
+
+        assert buffer._event_redis_keys == {}
+        assert buffer._metric_redis_keys == {}
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_key_map_matches_buffer_after_every_public_operation(
+        self,
+    ) -> None:
+        """Walks add/flush/requeue/clear and checks the invariant after
+        each step, not just at the end."""
+        config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="drop")
+        buffer = EventBuffer(config)
+        fake_redis = FakeRedisHandler()
+        await buffer.initialize_redis(fake_redis)
+        _assert_key_map_matches_buffer(buffer)
+
+        e1, e2, e3 = (_make_named_event(r) for r in ("e1", "e2", "e3"))
+        await buffer.add_event(e1)
+        _assert_key_map_matches_buffer(buffer)
+        await buffer.add_event(e2)
+        _assert_key_map_matches_buffer(buffer)
+        await buffer.add_event(e3)
+        _assert_key_map_matches_buffer(buffer)
+
+        events, keys = await buffer.flush_events_with_keys()
+        _assert_key_map_matches_buffer(buffer)
+
+        evicted = await buffer.requeue_events_in_memory(events, keys)
+        _assert_key_map_matches_buffer(buffer)
+        if evicted:
+            await buffer.confirm_event_redis_keys(evicted)
+            _assert_key_map_matches_buffer(buffer)
+
+        await buffer.clear_buffer()
+        _assert_key_map_matches_buffer(buffer)
+        assert buffer._event_redis_keys == {}
+        assert buffer._metric_redis_keys == {}
+
+
+class TestBufferBlockPolicyStarvation:
+    """C25: a requeue after a failed send always keeps its slot
+    (durability over a new writer), and a blocked writer never depends
+    solely on an explicit signal a 300s backoff can delay past -- it
+    re-checks on its own at least once per BLOCK_POLICY_POLL_INTERVAL."""
+
+    @pytest.mark.asyncio
+    async def test_blocked_writer_rechecks_within_poll_interval_after_requeue_wins_slot(
+        self,
+    ) -> None:
+        for _ in range(20):
+            await self._run_one_iteration()
+
+    async def _run_one_iteration(self) -> None:
+        from guard_agent import _buffer_queue
+
+        config = AgentConfig(api_key="k", buffer_size=1, buffer_overflow_policy="block")
+        buffer = EventBuffer(config)
+
+        class RaisingTransport:
+            async def send_events(self, events: list[SecurityEvent]) -> bool:
+                raise RuntimeError("boom")
+
+        class SucceedingTransport:
+            async def send_events(self, events: list[SecurityEvent]) -> bool:
+                return True
+
+        host = _FlushHost(config, buffer, RaisingTransport())
+
+        e1, e2 = _make_named_event("e1"), _make_named_event("e2")
+        await buffer.add_event(e1)
+
+        with patch.object(
+            _buffer_queue,
+            "BLOCK_POLICY_POLL_INTERVAL",
+            0.01,
+        ):
+            recheck = AsyncMock(wraps=buffer._resolve_event_overflow)
+            with patch.object(buffer, "_resolve_event_overflow", recheck):
+                pending = asyncio.create_task(buffer.add_event(e2))
+                await asyncio.sleep(0)
+                assert not pending.done()
+
+                with pytest.raises(RuntimeError):
+                    await host._flush_events()
+                assert not pending.done()
+
+                await asyncio.sleep(0.2)
+                assert not pending.done()
+                assert recheck.call_count >= 3, (
+                    "writer must actively re-poll, not sleep on a signal nobody sends"
+                )
+
+                host._events_retry_after = 0.0
+                host.transport = SucceedingTransport()
+                await host._flush_events()
+
+                await asyncio.wait_for(pending, timeout=2.0)
+
+        assert e2 in list(buffer.event_buffer)
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_blocked_metric_writer_rechecks_within_bounded_poll_interval(
+        self,
+    ) -> None:
+        from guard_agent import _buffer_queue
+
+        config = AgentConfig(api_key="k", buffer_size=1, buffer_overflow_policy="block")
+        buffer = EventBuffer(config)
+
+        class RaisingTransport:
+            async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
+                raise RuntimeError("boom")
+
+        class SucceedingTransport:
+            async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
+                return True
+
+        host = _FlushHost(config, buffer, RaisingTransport())
+
+        m1, m2 = _make_named_metric(1.0), _make_named_metric(2.0)
+        await buffer.add_metric(m1)
+
+        with patch.object(_buffer_queue, "BLOCK_POLICY_POLL_INTERVAL", 0.01):
+            recheck = AsyncMock(wraps=buffer._resolve_metric_overflow)
+            with patch.object(buffer, "_resolve_metric_overflow", recheck):
+                pending = asyncio.create_task(buffer.add_metric(m2))
+                await asyncio.sleep(0)
+                assert not pending.done()
+
+                with pytest.raises(RuntimeError):
+                    await host._flush_metrics()
+                assert not pending.done()
+
+                await asyncio.sleep(0.2)
+                assert not pending.done()
+                assert recheck.call_count >= 3
+
+                host._metrics_retry_after = 0.0
+                host.transport = SucceedingTransport()
+                await host._flush_metrics()
+
+                await asyncio.wait_for(pending, timeout=2.0)
+
+        assert m2 in list(buffer.metric_buffer)
+        _assert_key_map_matches_buffer(buffer)
+
+
+class TestFlushBoundaryExceptionHandling:
+    """C29: a BaseException from the transport (asyncio.CancelledError,
+    not an Exception subclass) must still requeue the popped batch and
+    advance the failure bookkeeping before propagating, or the batch is
+    silently lost and the backoff never advances.
+    C30: on_error fires once per failed batch when an exception reaches
+    the flush boundary, through the shared fire_error_hook helper."""
+
+    @pytest.mark.asyncio
+    async def test_cancelled_error_from_send_events_requeues_and_reraises(
+        self,
+    ) -> None:
+        calls: list[tuple[str, BaseException, dict]] = []
+        config = AgentConfig(
+            api_key="k", on_error=lambda s, e, c: calls.append((s, e, c))
+        )
+        buffer = EventBuffer(config)
+
+        class CancellingTransport:
+            async def send_events(self, events: list[SecurityEvent]) -> bool:
+                raise asyncio.CancelledError()
+
+        host = _FlushHost(config, buffer, CancellingTransport())
+
+        event = _make_named_event("e1")
+        await buffer.add_event(event)
+
+        with pytest.raises(asyncio.CancelledError):
+            await host._flush_events()
+
+        assert event in list(buffer.event_buffer)
+        assert host.events_failed == 1
+        assert host._events_failure_streak == 1
+        assert host._events_retry_after > 0.0
+        assert len(calls) == 1
+        assert calls[0][0] == "flush_events"
+        assert isinstance(calls[0][1], asyncio.CancelledError)
+        assert calls[0][2] == {"batch_size": 1}
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_cancelled_error_from_send_metrics_requeues_and_reraises(
+        self,
+    ) -> None:
+        calls: list[tuple[str, BaseException, dict]] = []
+        config = AgentConfig(
+            api_key="k", on_error=lambda s, e, c: calls.append((s, e, c))
+        )
+        buffer = EventBuffer(config)
+
+        class CancellingTransport:
+            async def send_metrics(self, metrics: list[SecurityMetric]) -> bool:
+                raise asyncio.CancelledError()
+
+        host = _FlushHost(config, buffer, CancellingTransport())
+
+        metric = _make_named_metric(1.0)
+        await buffer.add_metric(metric)
+
+        with pytest.raises(asyncio.CancelledError):
+            await host._flush_metrics()
+
+        assert metric in list(buffer.metric_buffer)
+        assert host.metrics_failed == 1
+        assert host._metrics_failure_streak == 1
+        assert len(calls) == 1
+        assert calls[0][0] == "flush_metrics"
+        assert isinstance(calls[0][1], asyncio.CancelledError)
+        assert calls[0][2] == {"batch_size": 1}
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_on_error_hook_raising_is_swallowed_and_logged(
+        self, caplog: LogCaptureFixture
+    ) -> None:
+        def bad_hook(stage: str, exc: BaseException, ctx: dict) -> None:
+            raise RuntimeError("hook fail")
+
+        config = AgentConfig(api_key="k", on_error=bad_hook)
+        buffer = EventBuffer(config)
+
+        class RaisingTransport:
+            async def send_events(self, events: list[SecurityEvent]) -> bool:
+                raise ValueError("boom")
+
+        host = _FlushHost(config, buffer, RaisingTransport())
+        await buffer.add_event(_make_named_event("e1"))
+
+        with caplog.at_level("ERROR"):
+            with pytest.raises(ValueError):
+                await host._flush_events()
+
+        assert any("on_error hook raised" in r.message for r in caplog.records)
 
 
 # Test basic functionality
@@ -386,6 +878,27 @@ class TestBufferRedisPersistence:
 
 
 # Test loading from Redis
+class TestBufferRedisMixinContract:
+    """BufferRedisMixin declares stub methods that BufferOverflowMixin
+    fulfills in the real EventBuffer composition; a bare mixin raises,
+    documenting the contract rather than silently returning None."""
+
+    def test_stub_methods_raise_not_implemented(self) -> None:
+        from guard_agent._buffer_redis import BufferRedisMixin
+
+        mixin = BufferRedisMixin()
+        for method_name in (
+            "_get_event_condition",
+            "_get_metric_condition",
+            "_is_event_buffer_full",
+            "_is_metric_buffer_full",
+            "_forget_oldest_event_key",
+            "_forget_oldest_metric_key",
+        ):
+            with pytest.raises(NotImplementedError):
+                getattr(mixin, method_name)()
+
+
 class TestBufferLoadFromRedis:
     """Tests for EventBuffer loading from Redis."""
 
@@ -509,6 +1022,145 @@ class TestBufferLoadFromRedis:
         message = "Failed to load event from Redis key"
         details = "No data found for key"
         assert f"{message} agent_events:unknown_key: {details}" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_initialize_redis_load_does_not_race_add_event(self) -> None:
+        """C31: loading persisted events at startup must not race live
+        add_event traffic touching the same deque and Redis-key map."""
+        from guard_agent.utils import safe_json_serialize
+
+        config = AgentConfig(api_key="k", buffer_size=20)
+        buffer = EventBuffer(config)
+        fake_redis = YieldingFakeRedisHandler()
+
+        preexisting = [_make_named_event(f"preload-{i}") for i in range(5)]
+        for i, event in enumerate(preexisting):
+            data = await safe_json_serialize(event.model_dump())
+            await fake_redis.set_key("agent_events", f"preload_{i}", data)
+
+        live_event = _make_named_event("live")
+
+        await asyncio.gather(
+            buffer.initialize_redis(fake_redis),
+            buffer.add_event(live_event),
+        )
+
+        assert len(buffer.event_buffer) >= 6
+        assert live_event in list(buffer.event_buffer)
+        loaded_reasons = {e.reason for e in preexisting}
+        buffered_reasons = {e.reason for e in buffer.event_buffer}
+        assert loaded_reasons <= buffered_reasons
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_initialize_redis_load_does_not_race_add_metric(self) -> None:
+        """C31: mirrors the event case for metrics."""
+        from guard_agent.utils import safe_json_serialize
+
+        config = AgentConfig(api_key="k", buffer_size=20)
+        buffer = EventBuffer(config)
+        fake_redis = YieldingFakeRedisHandler()
+
+        preexisting = [_make_named_metric(float(i)) for i in range(5)]
+        for i, metric in enumerate(preexisting):
+            data = await safe_json_serialize(metric.model_dump())
+            await fake_redis.set_key("agent_metrics", f"preload_{i}", data)
+
+        live_metric = _make_named_metric(99.0)
+
+        await asyncio.gather(
+            buffer.initialize_redis(fake_redis),
+            buffer.add_metric(live_metric),
+        )
+
+        assert len(buffer.metric_buffer) >= 6
+        assert live_metric in list(buffer.metric_buffer)
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_load_does_not_orphan_key_racing_add_event_at_capacity(
+        self,
+    ) -> None:
+        """C31, decisive: at capacity, a startup load's raw append can
+        evict the item add_event just placed. The lock must serialize
+        the two so add_event's own key bookkeeping finishes first, and
+        the load must forget that key before its own append evicts it."""
+        from guard_agent.utils import safe_json_serialize
+
+        config = AgentConfig(api_key="k", buffer_size=1)
+        buffer = EventBuffer(config)
+
+        persist_gate = asyncio.Event()
+
+        class GatedRedisHandler(FakeRedisHandler):
+            async def set_key(
+                self, namespace: str, key: str, value: str, ttl: int | None = None
+            ) -> bool:
+                await persist_gate.wait()
+                return await super().set_key(namespace, key, value, ttl)
+
+        fake_redis = GatedRedisHandler()
+        preload_event = _make_named_event("preload")
+        fake_redis.store["agent_events:preload"] = await safe_json_serialize(
+            preload_event.model_dump()
+        )
+        buffer.redis_handler = fake_redis
+
+        live_event = _make_named_event("live")
+
+        add_task = asyncio.create_task(buffer.add_event(live_event))
+        await asyncio.sleep(0)
+        assert live_event in list(buffer.event_buffer)
+
+        load_task = asyncio.create_task(buffer._load_from_redis())
+        await asyncio.sleep(0)
+
+        persist_gate.set()
+        await add_task
+        await load_task
+
+        _assert_key_map_matches_buffer(buffer)
+
+    @pytest.mark.asyncio
+    async def test_load_does_not_orphan_key_racing_add_metric_at_capacity(
+        self,
+    ) -> None:
+        """C31, decisive: mirrors the event case for metrics."""
+        from guard_agent.utils import safe_json_serialize
+
+        config = AgentConfig(api_key="k", buffer_size=1)
+        buffer = EventBuffer(config)
+
+        persist_gate = asyncio.Event()
+
+        class GatedRedisHandler(FakeRedisHandler):
+            async def set_key(
+                self, namespace: str, key: str, value: str, ttl: int | None = None
+            ) -> bool:
+                await persist_gate.wait()
+                return await super().set_key(namespace, key, value, ttl)
+
+        fake_redis = GatedRedisHandler()
+        preload_metric = _make_named_metric(0.0)
+        fake_redis.store["agent_metrics:preload"] = await safe_json_serialize(
+            preload_metric.model_dump()
+        )
+        buffer.redis_handler = fake_redis
+
+        live_metric = _make_named_metric(1.0)
+
+        add_task = asyncio.create_task(buffer.add_metric(live_metric))
+        await asyncio.sleep(0)
+        assert live_metric in list(buffer.metric_buffer)
+
+        load_task = asyncio.create_task(buffer._load_from_redis())
+        await asyncio.sleep(0)
+
+        persist_gate.set()
+        await add_task
+        await load_task
+
+        _assert_key_map_matches_buffer(buffer)
 
 
 # Test clearing from Redis
@@ -739,6 +1391,30 @@ class TestBufferOverflowDropTracking:
         assert buffer.get_stats()["metrics_dropped"] == 3
 
     @pytest.mark.asyncio
+    async def test_metric_overflow_drop_deletes_dropped_items_redis_record(
+        self, buffer: EventBuffer, mock_redis_handler: AsyncMock
+    ) -> None:
+        """C21, metric side: overflow-drop must confirm (delete) the
+        dropped metric's Redis key, not just forget the in-memory pointer."""
+        await buffer.initialize_redis(mock_redis_handler)
+        buffer.config.buffer_size = 1
+        buffer.metric_buffer = type(buffer.metric_buffer)(maxlen=1)
+
+        first = SecurityMetric(
+            timestamp=datetime.now(timezone.utc), metric_type="request_count", value=1.0
+        )
+        second = SecurityMetric(
+            timestamp=datetime.now(timezone.utc), metric_type="request_count", value=2.0
+        )
+        await buffer.add_metric(first)
+        mock_redis_handler.delete.reset_mock()
+
+        await buffer.add_metric(second)
+
+        mock_redis_handler.delete.assert_awaited_once()
+        assert mock_redis_handler.delete.call_args.args[0] == "agent_metrics"
+
+    @pytest.mark.asyncio
     async def test_no_drops_when_buffer_has_capacity(
         self, buffer: EventBuffer, security_event: SecurityEvent
     ) -> None:
@@ -762,6 +1438,52 @@ class TestBufferOverflowDropTracking:
             await buffer.add_event(security_event)
 
         assert any("buffer full" in r.message.lower() for r in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_overflow_drop_deletes_dropped_items_redis_record(self) -> None:
+        """C21: dropping the oldest event on overflow must delete its Redis
+        record too, not just forget the in-memory pointer, or it orphans."""
+        config = AgentConfig(api_key="k", endpoint="http://x", buffer_size=2)
+        buffer = EventBuffer(config)
+        fake_redis = FakeRedisHandler()
+        await buffer.initialize_redis(fake_redis)
+
+        def make_event(reason: str) -> SecurityEvent:
+            return SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="127.0.0.1",
+                action_taken="block",
+                reason=reason,
+            )
+
+        e1, e2, e3 = (make_event(r) for r in ("e1", "e2", "e3"))
+
+        await buffer.add_event(e1)
+        e1_key = buffer._event_redis_keys[id(e1)]
+        await buffer.add_event(e2)
+        await buffer.add_event(e3)
+
+        assert list(buffer.event_buffer) == [e2, e3]
+        assert buffer.events_dropped == 1
+        assert f"agent_events:{e1_key}" not in fake_redis.store
+
+        in_buffer_ids = {id(item) for item in buffer.event_buffer}
+        for item in buffer.event_buffer:
+            assert id(item) in buffer._event_redis_keys
+        for tracked_id in buffer._event_redis_keys:
+            assert tracked_id in in_buffer_ids
+
+        tracked_keys = set(buffer._event_redis_keys.values())
+        stored_keys = {
+            k.split(":")[-1] for k in fake_redis.store if k.startswith("agent_events:")
+        }
+        assert stored_keys == tracked_keys
+
+        events, keys = await buffer.flush_events_with_keys()
+        assert events == [e2, e3]
+        await buffer.confirm_event_redis_keys(keys)
+        assert not any(k.startswith("agent_events:") for k in fake_redis.store)
 
 
 class TestBufferConfirmAndRequeue:
@@ -816,9 +1538,48 @@ class TestBufferConfirmAndRequeue:
         events, keys = await buffer.flush_events_with_keys()
         assert len(buffer.event_buffer) == 0
 
-        buffer.requeue_events_in_memory(events, keys)
+        await buffer.requeue_events_in_memory(events, keys)
         assert len(buffer.event_buffer) == 1
         assert id(buffer.event_buffer[0]) in buffer._event_redis_keys
+
+    @pytest.mark.asyncio
+    async def test_requeue_after_failed_send_without_redis_preserves_events(
+        self, buffer: EventBuffer, security_metric: SecurityMetric
+    ) -> None:
+        """C16: no Redis means keys are all "", requeue must not drop items."""
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="127.0.0.1",
+                action_taken="block",
+                reason=f"test-{i}",
+            )
+            for i in range(3)
+        ]
+        for event in events:
+            await buffer.add_event(event)
+        await buffer.add_metric(security_metric)
+
+        flushed_events, event_keys = await buffer.flush_events_with_keys()
+        flushed_metrics, metric_keys = await buffer.flush_metrics_with_keys()
+        assert event_keys == ["", "", ""]
+        assert metric_keys == [""]
+        assert len(buffer.event_buffer) == 0
+        assert len(buffer.metric_buffer) == 0
+
+        await buffer.requeue_events_in_memory(flushed_events, event_keys)
+        await buffer.requeue_metrics_in_memory(flushed_metrics, metric_keys)
+
+        assert len(buffer.event_buffer) == 3
+        assert len(buffer.metric_buffer) == 1
+
+        resent_events, resent_event_keys = await buffer.flush_events_with_keys()
+        resent_metrics, resent_metric_keys = await buffer.flush_metrics_with_keys()
+        assert resent_events == flushed_events
+        assert resent_metrics == flushed_metrics
+        assert resent_event_keys == ["", "", ""]
+        assert resent_metric_keys == [""]
 
     @pytest.mark.asyncio
     async def test_legacy_flush_events_still_deletes_redis(
@@ -877,6 +1638,26 @@ class TestBufferConfirmAndRequeue:
         )
 
     @pytest.mark.asyncio
+    async def test_confirm_event_redis_keys_skips_empty_keys(
+        self, buffer: EventBuffer, mock_redis_handler: AsyncMock
+    ) -> None:
+        await buffer.initialize_redis(mock_redis_handler)
+
+        await buffer.confirm_event_redis_keys(["", "evt_real", ""])
+
+        mock_redis_handler.delete.assert_awaited_once_with("agent_events", "evt_real")
+
+    @pytest.mark.asyncio
+    async def test_confirm_metric_redis_keys_skips_empty_keys(
+        self, buffer: EventBuffer, mock_redis_handler: AsyncMock
+    ) -> None:
+        await buffer.initialize_redis(mock_redis_handler)
+
+        await buffer.confirm_metric_redis_keys(["", "m_real", ""])
+
+        mock_redis_handler.delete.assert_awaited_once_with("agent_metrics", "m_real")
+
+    @pytest.mark.asyncio
     async def test_confirm_metric_redis_keys_no_op_when_redis_missing(
         self, buffer: EventBuffer
     ) -> None:
@@ -916,7 +1697,7 @@ class TestBufferConfirmAndRequeue:
         await buffer.add_event(security_event)
 
         before_dropped = buffer.events_dropped
-        buffer.requeue_events_in_memory([security_event], ["evt_x"])
+        await buffer.requeue_events_in_memory([security_event], ["evt_x"])
 
         assert buffer.events_dropped == before_dropped + 1
         assert len(buffer.event_buffer) == 1
@@ -933,7 +1714,7 @@ class TestBufferConfirmAndRequeue:
         metrics, keys = await buffer.flush_metrics_with_keys()
         assert len(buffer.metric_buffer) == 0
 
-        buffer.requeue_metrics_in_memory(metrics, keys)
+        await buffer.requeue_metrics_in_memory(metrics, keys)
         assert len(buffer.metric_buffer) == 1
         assert id(buffer.metric_buffer[0]) in buffer._metric_redis_keys
 
@@ -942,8 +1723,86 @@ class TestBufferConfirmAndRequeue:
         await buffer.add_metric(security_metric)
 
         before_dropped = buffer.metrics_dropped
-        buffer.requeue_metrics_in_memory([security_metric], ["m_x"])
+        await buffer.requeue_metrics_in_memory([security_metric], ["m_x"])
         assert buffer.metrics_dropped == before_dropped + 1
+        assert len(buffer.metric_buffer) == 1
+
+    @pytest.mark.asyncio
+    async def test_requeue_appendleft_evicts_tail_not_head_no_orphaned_redis_keys(
+        self,
+    ) -> None:
+        """C19: appendleft evicts the tail when the buffer is full, so the
+        tail's key (not the head's) must be the one forgotten and its
+        Redis record confirmed, reproducing the critic's exact sequence."""
+        config = AgentConfig(api_key="k", endpoint="http://x", buffer_size=2)
+        buffer = EventBuffer(config)
+        fake_redis = FakeRedisHandler()
+        await buffer.initialize_redis(fake_redis)
+
+        def make_event(reason: str) -> SecurityEvent:
+            return SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="127.0.0.1",
+                action_taken="block",
+                reason=reason,
+            )
+
+        e1, e2, e3, e4 = (make_event(r) for r in ("e1", "e2", "e3", "e4"))
+
+        await buffer.add_event(e1)
+        await buffer.add_event(e2)
+        events, keys = await buffer.flush_events_with_keys()
+        assert events == [e1, e2]
+
+        await buffer.add_event(e3)
+        await buffer.add_event(e4)
+
+        evicted_keys = await buffer.requeue_events_in_memory(events, keys)
+        for evicted_key in evicted_keys:
+            await buffer.confirm_event_redis_keys([evicted_key])
+
+        assert list(buffer.event_buffer) == [e1, e2]
+
+        in_buffer_ids = {id(item) for item in buffer.event_buffer}
+        for item in buffer.event_buffer:
+            assert id(item) in buffer._event_redis_keys
+        for tracked_id in buffer._event_redis_keys:
+            assert tracked_id in in_buffer_ids
+
+        tracked_keys = set(buffer._event_redis_keys.values())
+        stored_keys = {
+            k.split(":")[-1] for k in fake_redis.store if k.startswith("agent_events:")
+        }
+        assert stored_keys == tracked_keys
+
+        events2, keys2 = await buffer.flush_events_with_keys()
+        assert events2 == [e1, e2]
+        await buffer.confirm_event_redis_keys(keys2)
+        assert not any(k.startswith("agent_events:") for k in fake_redis.store)
+
+    def test_forget_newest_event_key_no_op_when_buffer_empty(
+        self, buffer: EventBuffer
+    ) -> None:
+        assert buffer._forget_newest_event_key() is None
+
+    def test_forget_newest_metric_key_no_op_when_buffer_empty(
+        self, buffer: EventBuffer
+    ) -> None:
+        assert buffer._forget_newest_metric_key() is None
+
+    @pytest.mark.asyncio
+    async def test_requeue_metrics_eviction_with_no_tracked_key_returns_no_evicted_keys(
+        self, buffer: EventBuffer, security_metric: SecurityMetric
+    ) -> None:
+        """The evicted (tail) item had no Redis key, so nothing to confirm."""
+        buffer.config.buffer_size = 1
+        buffer.metric_buffer = type(buffer.metric_buffer)(maxlen=1)
+        buffer.metric_buffer.append(security_metric)
+
+        evicted_keys = await buffer.requeue_metrics_in_memory([security_metric], [""])
+
+        assert evicted_keys == []
         assert len(buffer.metric_buffer) == 1
 
 
@@ -1025,14 +1884,14 @@ class TestBufferMissingBranches:
     async def test_requeue_events_with_empty_key_skips_redis_tracking(
         self, buffer: EventBuffer, security_event: SecurityEvent
     ) -> None:
-        buffer.requeue_events_in_memory([security_event], [""])
+        await buffer.requeue_events_in_memory([security_event], [""])
         assert id(security_event) not in buffer._event_redis_keys
 
     @pytest.mark.asyncio
     async def test_requeue_metrics_with_empty_key_skips_redis_tracking(
         self, buffer: EventBuffer, security_metric: SecurityMetric
     ) -> None:
-        buffer.requeue_metrics_in_memory([security_metric], [""])
+        await buffer.requeue_metrics_in_memory([security_metric], [""])
         assert id(security_metric) not in buffer._metric_redis_keys
 
     @pytest.mark.asyncio
@@ -1289,36 +2148,34 @@ class TestBufferOverflowPolicy:
         assert buffer.metrics_dropped == 0
 
     @pytest.mark.asyncio
-    async def test_flush_events_with_keys_no_signal_when_buffer_empty(
+    async def test_flush_events_with_keys_no_op_when_buffer_empty(
         self, buffer: EventBuffer
     ) -> None:
         events, keys = await buffer.flush_events_with_keys()
         assert events == []
         assert keys == []
-        assert buffer._event_space_available is None
 
     @pytest.mark.asyncio
-    async def test_flush_metrics_with_keys_no_signal_when_buffer_empty(
+    async def test_flush_metrics_with_keys_no_op_when_buffer_empty(
         self, buffer: EventBuffer
     ) -> None:
         metrics, keys = await buffer.flush_metrics_with_keys()
         assert metrics == []
         assert keys == []
-        assert buffer._metric_space_available is None
 
     @pytest.mark.asyncio
-    async def test_get_space_event_returns_existing_when_already_initialized(
+    async def test_get_condition_returns_existing_when_already_initialized(
         self,
     ) -> None:
         config = AgentConfig(api_key="k", buffer_size=2, buffer_overflow_policy="block")
         buffer = EventBuffer(config)
 
-        first_event = buffer._get_event_space_event()
-        second_event = buffer._get_event_space_event()
+        first_event = buffer._get_event_condition()
+        second_event = buffer._get_event_condition()
         assert first_event is second_event
 
-        first_metric = buffer._get_metric_space_event()
-        second_metric = buffer._get_metric_space_event()
+        first_metric = buffer._get_metric_condition()
+        second_metric = buffer._get_metric_condition()
         assert first_metric is second_metric
 
     @pytest.mark.asyncio

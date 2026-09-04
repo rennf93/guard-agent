@@ -171,7 +171,7 @@ async def test_flush_events_413_drop_does_not_requeue_and_confirms_redis(
         handler = GuardAgentHandler(agent_config)
         handler.transport = transport
         handler.buffer = AsyncMock()
-        handler.buffer.requeue_events_in_memory = MagicMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
         handler.buffer.flush_metrics_with_keys.return_value = ([], [])
 
         events = [
@@ -202,7 +202,7 @@ async def test_flush_metrics_permanent_rejection_does_not_requeue(
     handler = GuardAgentHandler(agent_config)
     handler.buffer = AsyncMock()
     handler.transport = AsyncMock()
-    handler.buffer.requeue_metrics_in_memory = MagicMock()
+    handler.buffer.requeue_metrics_in_memory = AsyncMock(return_value=[])
     handler.buffer.flush_events_with_keys.return_value = ([], [])
 
     metrics = [MagicMock()]

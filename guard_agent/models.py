@@ -14,7 +14,9 @@ KNOWN_EVENT_TYPES = [
     "ip_banned",
     "ip_unbanned",
     "ip_blocked",
+    "ip_ban_failed",
     "rate_limited",
+    "rate_limit_script_reloaded",
     "suspicious_request",
     "cloud_blocked",
     "country_blocked",
@@ -28,11 +30,14 @@ KNOWN_EVENT_TYPES = [
     "geo_lookup_failed",
     "https_enforced",
     "pattern_anomaly_slow_execution",
+    "pattern_anomaly_timeout",
+    "pattern_anomaly_statistical_anomaly",
     "redis_connection",
     "redis_error",
     "dynamic_rule_applied",
     "dynamic_rule_updated",
     "path_excluded",
+    "route_unresolved",
     "pattern_detected",
     "pattern_added",
     "pattern_removed",
@@ -99,7 +104,12 @@ class AgentConfig(BaseModel):
     backoff_factor: float = Field(default=1.0, description="Backoff factor for retries")
 
     sensitive_headers: list[str] = Field(
-        default_factory=lambda: ["authorization", "cookie", "x-api-key"],
+        default_factory=lambda: [
+            "authorization",
+            "proxy-authorization",
+            "cookie",
+            "x-api-key",
+        ],
         description="Headers to exclude from telemetry",
     )
     max_payload_size: int = Field(
@@ -155,10 +165,11 @@ class AgentConfig(BaseModel):
     on_error: Callable[[str, BaseException, dict[str, Any]], None] | None = Field(
         default=None,
         description=(
-            "Optional best-effort callback invoked when a transport or encryption "
-            "step fails, receiving (stage, exception, context). stage is one of "
-            "'transport_send' / 'encryption'. A callback that raises is caught and "
-            "logged, never propagated."
+            "Optional best-effort callback invoked when a transport, encryption, "
+            "or flush step fails, receiving (stage, exception, context). stage is "
+            "one of 'transport_send' / 'encryption' / 'flush_events' / "
+            "'flush_metrics'. A callback that raises is caught and logged, "
+            "never propagated."
         ),
     )
 

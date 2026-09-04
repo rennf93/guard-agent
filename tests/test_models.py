@@ -1,3 +1,4 @@
+import importlib
 from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
@@ -6,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from guard_agent.models import (
+    KNOWN_EVENT_TYPES,
     AgentConfig,
     AgentStatus,
     DynamicRules,
@@ -47,6 +49,41 @@ class TestAgentConfig:
         assert config.enable_events is True
         assert config.guard_version is None
         assert config.guard_core_version is None
+
+    def test_default_sensitive_headers_match_guard_core(self) -> None:
+        """The hardcoded expectation runs unconditionally, so guard-agent's
+        own drift is caught even when the installed guard_core predates
+        _DEFAULT_SENSITIVE_LOG_HEADERS; when it exists, cross-check it too."""
+        config = AgentConfig(api_key="test")
+
+        assert config.sensitive_headers == [
+            "authorization",
+            "proxy-authorization",
+            "cookie",
+            "x-api-key",
+        ]
+
+        guard_core = pytest.importorskip("guard_core")
+        try:
+            request_logging = importlib.import_module(
+                "guard_core._utils.request_logging"
+            )
+        except ImportError:
+            pytest.skip(
+                f"installed guard_core {guard_core.__version__} has no "
+                "guard_core._utils.request_logging"
+            )
+
+        default_headers = getattr(
+            request_logging, "_DEFAULT_SENSITIVE_LOG_HEADERS", None
+        )
+        if default_headers is None:
+            pytest.skip(
+                f"installed guard_core {guard_core.__version__} has no "
+                "_DEFAULT_SENSITIVE_LOG_HEADERS"
+            )
+
+        assert set(config.sensitive_headers) == set(default_headers)
 
     def test_invalid_endpoint_empty(self) -> None:
         """Test that empty endpoint raises validation error."""
@@ -351,3 +388,45 @@ class TestEventBatch:
         assert batch.agent_version == "2.8.1"
         assert batch.guard_version == "7.0.0"
         assert batch.guard_core_version == "3.12.0"
+
+
+_KNOWN_EVENT_TYPES_PARITY_MINIMUM = (4, 0, 0)
+
+
+def test_known_event_types_match_guard_core() -> None:
+    """Compares against whatever guard_core is installed in this venv. The
+    parity contract (behavioral_violation's rename, and registering
+    suspicious_request / detection_engine_callback_error /
+    pattern_anomaly_*) starts at guard-core 4.0.0; guard-agent's own CI
+    resolves guard-core from PyPI and must stay green until that release
+    ships, so this skips on anything older instead of going red."""
+    guard_core = pytest.importorskip("guard_core")
+    try:
+        version = tuple(int(p) for p in guard_core.__version__.split(".")[:3])
+    except ValueError:
+        pytest.skip(
+            f"installed guard_core has an unparseable version "
+            f"{guard_core.__version__!r}"
+        )
+    if version < _KNOWN_EVENT_TYPES_PARITY_MINIMUM:
+        pytest.skip(
+            f"installed guard_core {guard_core.__version__} predates the "
+            f"KNOWN_EVENT_TYPES parity contract (4.0.0+)"
+        )
+
+    try:
+        from guard_core.core.events.event_types import EVENT_TYPE_VALUES
+    except ImportError:
+        pytest.skip(
+            f"installed guard_core {guard_core.__version__} has no "
+            "guard_core.core.events.event_types.EVENT_TYPE_VALUES"
+        )
+
+    guard_agent_only = sorted(set(KNOWN_EVENT_TYPES) - set(EVENT_TYPE_VALUES))
+    guard_core_only = sorted(set(EVENT_TYPE_VALUES) - set(KNOWN_EVENT_TYPES))
+
+    assert not guard_agent_only and not guard_core_only, (
+        f"guard_core {guard_core.__version__}: "
+        f"only in guard-agent's KNOWN_EVENT_TYPES: {guard_agent_only}; "
+        f"only in guard-core's EVENT_TYPE_VALUES: {guard_core_only}"
+    )
