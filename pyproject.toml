@@ -40,7 +40,7 @@ Changelog = "https://github.com/rennf93/guard-agent/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
-    "anyio<4.15",
+    "anyio<4.16",
     "bandit[toml]",
     "black",
     "deptry",
