@@ -133,7 +133,16 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_default_fixture_loop_scope = "function"
 addopts = "--cov=guard_agent --cov-branch --cov-report=term-missing"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # starlette 1.6.0 still imports anyio.abc.BlockingPortal in testclient, which
+    # anyio >= 4.15 deprecates via a lazy import, so importing fastapi.testclient
+    # raises a DeprecationWarning at collection and the "error" filter aborts
+    # pytest before any test runs. starlette master already switched to
+    # anyio.from_thread.BlockingPortal; drop this filter once a starlette
+    # release carries it.
+    'ignore:The anyio\.abc\.BlockingPortal alias is deprecated:DeprecationWarning',
+]
 markers = [
     "asyncio: mark tests as async"
 ]
