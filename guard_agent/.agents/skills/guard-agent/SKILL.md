@@ -9,7 +9,7 @@ Framework-agnostic telemetry and monitoring agent for the Guard ecosystem. Buffe
 
 ## Quick Reference
 
-* Client setup: build an `AgentConfig`, call `guard_agent(config)` for the handler; see [Client Setup](#client-setup).
+* Client setup: build an `AgentConfig`, call `guard_agent(config)` for the handler; see [Setup](#setup).
 * Buffer/flush config: `buffer_size`, `flush_interval`, `high_watermark_ratio`; keep the buffer small vs the 256 KiB SaaS body cap; see [the buffering reference](references/buffering.md).
 * Redis persistence: `ttl=3600s`, keys retained on failure and deleted only on success; see [the Redis reference](references/redis.md).
 * 413 / permanent rejections: HTTP 413 splits the batch in half and retries each half (or drops a single over-cap item); 400/404/422 are dropped, not requeued; see [the transport reference](references/transport.md).
@@ -17,7 +17,16 @@ Framework-agnostic telemetry and monitoring agent for the Guard ecosystem. Buffe
 * logfire mute: the agent mutes its telemetry Pydantic models at import so a host `logfire.instrument_pydantic()` does not emit per-event validation spans; see [the logfire mute reference](references/logfire-mute.md).
 * Config reference: every `AgentConfig` field with defaults; see [the config reference](references/config.md).
 
-## Client Setup
+## Installation
+
+```bash
+pip install guard-agent           # or: uv add guard-agent
+pip install "guard-agent[redis]"  # optional: Redis-backed buffer persistence
+```
+
+`guard-agent` is normally installed for you as an optional dependency when an adapter's `SecurityConfig` sets `enable_agent=True`. Requires Python 3.10-3.14.
+
+## Setup
 
 `guard_agent` is imported by a framework adapter (fastapi-guard, flaskapi-guard, djapi-guard, tornadoapi-guard); you rarely instantiate it directly. When you do, build an `AgentConfig` and use the `guard_agent` factory, which returns a `GuardAgentHandler` in an async context or a `SyncGuardAgentHandler` in a sync context.
 
@@ -82,3 +91,20 @@ See [the transport reference](references/transport.md) for the exact return sema
 ## logfire Mute
 
 `SecurityEvent`, `SecurityMetric`, and `EventBatch` are validated per request and `EventBatch` re-validates every buffered event on each flush. A host app that calls `logfire.instrument_pydantic()` would otherwise emit a span per security event. At import time, guard-agent sets `model_config["plugin_settings"]["logfire"] = {"record": "off"}` on each of those three models and force-rebuilds them. This works without logfire installed and is idempotent (guard-core applies the same mute to the same models at its import; re-applying is harmless). See [the logfire mute reference](references/logfire-mute.md).
+
+## Footguns
+
+* **`guard_agent()` dispatches on context and is a per-process singleton.** In a process whose adapter already enables the agent, a handler you build yourself can resolve to a different singleton (a sync module-load context returns `SyncGuardAgentHandler`; the middleware's async init returns `GuardAgentHandler`), so events sent through yours never reach the dashboard. Configure the `agent_*` fields on `SecurityConfig` instead.
+* **Keep `buffer_size` small.** The SaaS ingestion endpoint caps request bodies at 256 KiB; a large buffer flushing a giant batch triggers a 413 and the split-or-drop cascade. The default of 100 is a safe ceiling for typical event sizes.
+* **`True` from `send_events` / `send_metrics` means accepted OR permanently dropped.** Permanent rejections (400/404/422) are dropped without requeue by design; only `False` (transient failure) requeues and retains Redis keys. A `True` return alone does not prove the events reached the dashboard.
+* **Do not call the transport directly.** Normalization, retry, circuit breaking, and Redis bookkeeping live in the handler; bypassing it loses all of that.
+
+## Related Projects
+
+* [guard-core](https://github.com/rennf93/guard-core): framework-agnostic security engine whose adapters ship telemetry through this agent.
+* [fastapi-guard](https://github.com/rennf93/fastapi-guard): FastAPI/Starlette adapter.
+* [flaskapi-guard](https://github.com/rennf93/flaskapi-guard): Flask extension adapter.
+* [djapi-guard](https://github.com/rennf93/djapi-guard): Django middleware adapter.
+* [tornadoapi-guard](https://github.com/rennf93/tornadoapi-guard): Tornado handler/middleware adapter.
+* [guard-core-mcp](https://github.com/rennf93/guard-core-mcp): MCP server for config validation and docs search.
+* [guard-core-app](https://github.com/rennf93/guard-core-app): SaaS platform this agent reports to.
