@@ -3,7 +3,18 @@ Release Notes
 
 ___
 
-v3.0.0 (2026-09-04)
+v3.0.1 (2026-09-23)
+-------------------
+
+Partial-failure warning no longer claims Redis retention without Redis (v3.0.1)
+--------------------------------------------------------------------------------
+
+### Fixed
+
+- **The flush loop's partial-failure warning was misleading during incidents.** When a batch was partially rejected, the warning claimed items were "requeued in memory and retained in Redis for retry" even when Redis persistence was disabled; the true disposition without Redis is the in-memory buffer only. The warning now names the backend that actually holds the requeued items, and regression tests cover both the Redis-disabled and Redis-enabled warnings.
+
+___
+
 -------------------
 
 Recursive header and metadata redaction, an atomic block-policy buffer, and a maintainability split (v3.0.0)
