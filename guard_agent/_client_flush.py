@@ -27,6 +27,21 @@ class FlushMixin:
     ) -> None:
         fire_error_hook(self.config.on_error, self.logger, stage, exc, context)
 
+    def _retention_description(self, kind: str) -> str:
+        """Describe where unsent items wait for retry, based on whether a Redis
+        handler is attached to the buffer. Without Redis the items live only in
+        the in-memory buffer, so claiming Redis retention would be misleading."""
+        has_redis = getattr(self.buffer, "redis_handler", None) is not None
+        memory_part = "requeued in memory"
+        redis_part = " and retained in Redis" if has_redis else ""
+        return f"{memory_part}{redis_part} ({kind})"
+
+    def _events_retention_description(self) -> str:
+        return self._retention_description("events")
+
+    def _metrics_retention_description(self) -> str:
+        return self._retention_description("metrics")
+
     async def flush_buffer(self) -> None:
         try:
             await self._flush_events()
@@ -74,7 +89,7 @@ class FlushMixin:
         if self._events_failure_streak == 1:
             self.logger.warning(
                 f"Failed to send {len(events)} events; "
-                f"requeued in memory and retained in Redis for retry; "
+                f"{self._events_retention_description()} for retry; "
                 f"backing off up to {delay:.0f}s between attempts"
             )
         if exc is not None:
@@ -122,7 +137,7 @@ class FlushMixin:
         if self._metrics_failure_streak == 1:
             self.logger.warning(
                 f"Failed to send {len(metrics)} metrics; "
-                f"requeued in memory and retained in Redis for retry; "
+                f"{self._metrics_retention_description()} for retry; "
                 f"backing off up to {delay:.0f}s between attempts"
             )
         if exc is not None:
