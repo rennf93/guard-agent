@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any, cast
@@ -1011,3 +1012,49 @@ class TestGuardAgentHandler:
         """Test that GuardAgentHandler satisfies AgentHandlerProtocol."""
         handler = GuardAgentHandler(agent_config)
         assert isinstance(handler, AgentHandlerProtocol)
+
+
+class TestRetentionLogMessage:
+    """The partial-failure warning must describe where unsent items actually
+    wait: memory only, or memory plus Redis when a Redis handler is attached."""
+
+    @pytest.mark.asyncio
+    async def test_events_warning_without_redis_says_memory_only(
+        self, agent_config: AgentConfig, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler = GuardAgentHandler(agent_config)
+        handler.buffer = AsyncMock()
+        handler.buffer.redis_handler = None
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
+        handler.buffer.flush_events_with_keys = AsyncMock(
+            return_value=([MagicMock()], ["ek"])
+        )
+        handler.transport = AsyncMock()
+        handler.transport.send_events = AsyncMock(return_value=False)
+
+        with caplog.at_level(logging.WARNING, logger="guard_agent"):
+            await handler._flush_events()
+
+        assert "requeued in memory (events) for retry" in caplog.text
+        assert "retained in Redis" not in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_events_warning_with_redis_mentions_redis(
+        self, agent_config: AgentConfig, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler = GuardAgentHandler(agent_config)
+        handler.buffer = AsyncMock()
+        handler.buffer.redis_handler = AsyncMock()
+        handler.buffer.requeue_events_in_memory = AsyncMock(return_value=[])
+        handler.buffer.flush_events_with_keys = AsyncMock(
+            return_value=([MagicMock()], ["ek"])
+        )
+        handler.transport = AsyncMock()
+        handler.transport.send_events = AsyncMock(return_value=False)
+
+        with caplog.at_level(logging.WARNING, logger="guard_agent"):
+            await handler._flush_events()
+
+        assert (
+            "requeued in memory and retained in Redis (events) for retry" in caplog.text
+        )
