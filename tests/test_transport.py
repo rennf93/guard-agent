@@ -1665,27 +1665,27 @@ class TestHTTPTransportRetryAfter:
 class TestHTTPTransportCompression:
     """Tests for the gzip compression of outgoing request bodies."""
 
-    def test_maybe_compress_skips_when_below_threshold(
+    def test_build_post_body_skips_when_below_threshold(
         self, agent_config: AgentConfig
     ) -> None:
         agent_config.compression_enabled = True
         agent_config.compression_threshold = 10_000
         transport = HTTPTransport(agent_config)
-        body, headers = transport._maybe_compress("hi")
+        body, headers = transport._build_post_body("hi")
         assert body == b"hi"
         assert headers == {}
 
-    def test_maybe_compress_skips_when_disabled(
+    def test_build_post_body_skips_when_disabled(
         self, agent_config: AgentConfig
     ) -> None:
         agent_config.compression_enabled = False
         agent_config.compression_threshold = 1
         transport = HTTPTransport(agent_config)
-        body, headers = transport._maybe_compress("x" * 100)
+        body, headers = transport._build_post_body("x" * 100)
         assert body == b"x" * 100
         assert headers == {}
 
-    def test_maybe_compress_gzips_above_threshold(
+    def test_build_post_body_gzips_above_threshold(
         self, agent_config: AgentConfig
     ) -> None:
         import gzip
@@ -1693,10 +1693,29 @@ class TestHTTPTransportCompression:
         agent_config.compression_enabled = True
         agent_config.compression_threshold = 10
         transport = HTTPTransport(agent_config)
-        body, headers = transport._maybe_compress("y" * 200)
+        body, headers = transport._build_post_body("y" * 200)
         assert headers == {"Content-Encoding": "gzip"}
         assert gzip.decompress(body) == b"y" * 200
         assert len(body) < 200
+
+    def test_build_post_body_signs_uncompressed_body_when_gzipped(
+        self, agent_config: AgentConfig
+    ) -> None:
+        import gzip
+        import hashlib
+        import hmac
+
+        agent_config.compression_enabled = True
+        agent_config.compression_threshold = 10
+        agent_config.payload_signing_secret = "my-hmac-secret"
+        transport = HTTPTransport(agent_config)
+        body, headers = transport._build_post_body("z" * 200)
+        expected = (
+            "v1=" + hmac.new(b"my-hmac-secret", b"z" * 200, hashlib.sha256).hexdigest()
+        )
+        assert headers["X-Payload-Signature"] == expected
+        assert headers["Content-Encoding"] == "gzip"
+        assert gzip.decompress(body) == b"z" * 200
 
     @pytest.mark.asyncio
     async def test_send_events_uses_gzip_when_payload_is_large(
@@ -1730,6 +1749,49 @@ class TestHTTPTransportCompression:
         assert isinstance(sent_body, bytes)
         decoded = gzip.decompress(sent_body)
         assert b"ip_banned" in decoded
+
+    @pytest.mark.asyncio
+    async def test_send_events_signature_verifies_after_decompression(
+        self,
+        agent_config: AgentConfig,
+        mock_client: AsyncMock,
+    ) -> None:
+        """The signature must cover the uncompressed body, as the server
+        verifies it against the decompressed wire body."""
+        import gzip
+        import hashlib
+        import hmac
+
+        agent_config.compression_enabled = True
+        agent_config.compression_threshold = 100
+        agent_config.payload_signing_secret = "my-hmac-secret"
+        transport = HTTPTransport(agent_config)
+        transport._client = mock_client
+
+        events = [
+            SecurityEvent(
+                timestamp=datetime.now(timezone.utc),
+                event_type="ip_banned",
+                ip_address="192.168.1.1",
+                action_taken="banned",
+                reason="x" * 4000,
+            )
+        ]
+
+        result = await transport.send_events(events)
+        assert result is True
+
+        post_call = mock_client.post.call_args
+        headers = post_call.kwargs.get("headers", {})
+        sent_body = post_call.kwargs["content"]
+        assert headers.get("Content-Encoding") == "gzip"
+        expected = (
+            "v1="
+            + hmac.new(
+                b"my-hmac-secret", gzip.decompress(sent_body), hashlib.sha256
+            ).hexdigest()
+        )
+        assert headers["X-Payload-Signature"] == expected
 
 
 class TestLogRequestError:
