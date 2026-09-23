@@ -105,15 +105,25 @@ class TransportResponseMixin:
 class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
     _ENCRYPTED_ENDPOINTS = ("/api/v1/events", "/api/v1/metrics")
 
-    def _maybe_compress(self, json_text: str) -> tuple[bytes, dict[str, str]]:
-        """Return body bytes plus Content-Encoding header when compression applies."""
+    def _build_post_body(self, json_text: str) -> tuple[bytes, dict[str, str]]:
+        """Return wire body bytes plus headers (signature, compression) for a POST.
+
+        The signature always covers the uncompressed body: the server
+        decompresses the wire body before verifying, so a signature taken
+        over gzipped bytes never verifies.
+        """
         raw = json_text.encode("utf-8")
+        headers: dict[str, str] = {}
+        signature = sign_payload(raw, secret=self.config.payload_signing_secret)
+        if signature is not None:
+            headers["X-Payload-Signature"] = signature
         if (
-            not self.config.compression_enabled
-            or len(raw) < self.config.compression_threshold
+            self.config.compression_enabled
+            and len(raw) >= self.config.compression_threshold
         ):
-            return raw, {}
-        return gzip.compress(raw), {"Content-Encoding": "gzip"}
+            headers["Content-Encoding"] = "gzip"
+            return gzip.compress(raw), headers
+        return raw, headers
 
     def _redact_sensitive_headers(self, data: dict[str, Any]) -> dict[str, Any]:
         for event in data.get("events", []):
@@ -220,10 +230,7 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             )
             self._fire_error_hook("encryption", e, {"endpoint": encrypted_url})
             return False
-        body, headers = self._maybe_compress(json_data)
-        signature = sign_payload(body, secret=self.config.payload_signing_secret)
-        if signature is not None:
-            headers["X-Payload-Signature"] = signature
+        body, headers = self._build_post_body(json_data)
         self.bytes_sent += len(body)
         response = await self._client.post(encrypted_url, content=body, headers=headers)
         return await self._handle_response(response)
@@ -242,10 +249,7 @@ class TransportDispatchMixin(TransportResponseMixin, TransportLifecycleMixin):
             )
             self._fire_error_hook("transport_send", e, {"endpoint": url})
             return False
-        body, headers = self._maybe_compress(json_data)
-        signature = sign_payload(body, secret=self.config.payload_signing_secret)
-        if signature is not None:
-            headers["X-Payload-Signature"] = signature
+        body, headers = self._build_post_body(json_data)
         self.bytes_sent += len(body)
         response = await self._client.post(url, content=body, headers=headers)
         return await self._handle_response(response)

@@ -4,7 +4,7 @@
 
 As of `guard-agent` 2.0.0, the telemetry agent previously distributed under the name `fastapi-guard-agent` has been repositioned as a framework-agnostic agent serving `fastapi-guard`, `flaskapi-guard`, `djangoapi-guard`, and `tornadoapi-guard`.
 
-This PyPI entry (`fastapi-guard-agent==1.2.0`) is a meta-package: installing it transitively installs `guard-agent>=2.0.0,<3.0.0`. It exists so that existing install commands referencing `fastapi-guard-agent` in scripts, Dockerfiles, and lockfiles continue to resolve to the renamed distribution.
+This PyPI entry (`fastapi-guard-agent==1.3.0`) is a meta-package: installing it transitively installs `guard-agent>=3.0.0,<4.0.0`. It exists so that existing install commands referencing `fastapi-guard-agent` in scripts, Dockerfiles, and lockfiles continue to resolve to the renamed distribution.
 
 ## Migration
 

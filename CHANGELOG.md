@@ -3,6 +3,23 @@ Release Notes
 
 ___
 
+v3.0.2 (2026-09-23)
+-------------------
+
+Payload signatures now cover the uncompressed body (v3.0.2)
+-----------------------------------------------------------
+
+### Fixed
+
+- **The payload signature was computed over the compressed wire body, so every compressed request failed server-side verification.** When gzip compression kicked in (payload at or above `compression_threshold` with `compression_enabled`), `X-Payload-Signature` was an HMAC over the gzipped bytes, while the server verifies after decompressing; compressed batches were therefore rejected as signature-invalid. The signature now always covers the uncompressed body, matching the server contract and all four agent ports (Go, PHP, Rust, TypeScript). Regression tests verify the signature equals the HMAC over the decompressed wire body on both the encrypted and unencrypted POST paths.
+- **The package version and the reported agent version could drift apart.** The 3.0.1 release updated `pyproject.toml` but left `guard_agent/_version.py` (the "single source of truth" used for the User-Agent and `agent_version` on every batch) at 3.0.0. Both are now 3.0.2, the bump script remains the canonical way to change the version, and a new consistency test fails if the two files ever diverge again.
+
+### Changed
+
+- **The deprecated `fastapi-guard-agent` alias now resolves to guard-agent 3.x.** Its dependency pin was still `guard-agent>=2.0.0,<3.0.0` from the 2.0.0 rename, so installs through the alias kept resolving to 2.x after 3.0.0 shipped. The pin is now `>=3.0.0,<4.0.0` and the shim version is 1.3.0; the shim itself publishes via the manual `release-shim.yml` workflow after the main release.
+
+___
+
 v3.0.1 (2026-09-23)
 -------------------
 
