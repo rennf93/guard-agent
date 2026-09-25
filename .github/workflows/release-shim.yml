@@ -48,23 +48,3 @@ jobs:
         run: |
           twine upload dist/*
 
-      - name: Notify Slack
-        if: always()
-        uses: rennf93/good-comms@master
-        with:
-          SLACK_WEBHOOK: '${{ secrets.SLACK_WEBHOOK }}'
-          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
-          STATUS: ${{ job.status == 'success' && 'Success' || 'Failed' }}
-          CHANNEL_ID: '${{ secrets.SLACK_CHANNEL }}'
-          AUTHOR_NAME: 'Guard Agent - Legacy Shim Release'
-          AUTHOR_LINK: 'https://github.com/rennf93/guard-agent'
-          AUTHOR_ICON: ':package:'
-          TITLE: 'fastapi-guard-agent shim (1.2.0) publish'
-          TITLE_LINK: 'https://pypi.org/project/fastapi-guard-agent/'
-          MESSAGE: |
-            .
-            The `fastapi-guard-agent` meta-package build has finished.
-
-            Status: ${{ job.status }}
-            .
-          COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
